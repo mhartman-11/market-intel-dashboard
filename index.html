@@ -1,1 +1,543 @@
-<iframe src="https://claude.site/public/artifacts/26708363-74c0-4465-b05d-c624fbbf8cd7/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalentIQ — Talent Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#07101F; --surface:#0D1829; --elevated:#142034; --border:#1A2540;
+  --accent:#4A7FE5; --green:#2DD4A0; --amber:#F59E0B; --red:#F26C6C;
+  --purple:#A78BFA; --text:#E8EDF5; --muted:#5E7A9A; --dim:#1E3050;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;}
+/* SETUP */
+#setup-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.setup-card{width:100%;max-width:540px;}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#7B5EA7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;}
+.setup-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.card-sub{font-size:11px;color:var(--muted);margin-bottom:14px;}
+/* KPI */
+.kpi-row{display:flex;gap:12px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;flex:1;min-width:0;cursor:default;}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-value{font-size:24px;font-weight:700;line-height:1;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;}
+.kpi-trend{margin-top:6px;font-size:11px;display:flex;align-items:center;gap:4px;}
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-14{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+.grid-41{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;}
+.grid-15{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;}
+.grid-12{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;}
+.flex-col{display:flex;flex-direction:column;gap:16px;}
+/* TABLES */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:4px 10px;font-weight:500;font-size:11px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid var(--border);}
+/* BADGES */
+.badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-red{background:rgba(242,108,108,.15);color:var(--red);}
+.badge-amber{background:rgba(245,158,11,.15);color:var(--amber);}
+.badge-green{background:rgba(45,212,160,.15);color:var(--green);}
+/* INPUTS */
+input[type=text],input[type=password],select{width:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-size:13px;color:var(--text);outline:none;font-family:inherit;}
+input::placeholder{color:var(--muted);}
+select{appearance:none;cursor:pointer;}
+select option{background:var(--elevated);}
+/* BUTTONS */
+.btn-primary{width:100%;background:var(--accent);border:none;border-radius:9px;padding:13px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;}
+.btn-primary:disabled{background:var(--dim);color:var(--muted);cursor:default;}
+.btn-icon{background:var(--accent);border:none;border-radius:8px;width:42px;height:42px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;color:#fff;font-family:inherit;}
+/* MODE BUTTONS */
+.mode-btn{flex:1;background:var(--elevated);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;font-family:inherit;}
+.mode-btn.active{background:rgba(74,127,229,.12);border-color:var(--accent);}
+.mode-btn-label{font-size:12px;font-weight:600;color:var(--text);}
+.mode-btn.active .mode-btn-label{color:var(--accent);}
+.mode-btn-desc{font-size:11px;color:var(--muted);margin-top:3px;}
+/* HEADER */
+#dash-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;}
+.header-logo{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.header-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),#7B5EA7);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.company-pill{display:flex;align-items:center;gap:6px;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:3px 10px 3px 8px;cursor:pointer;}
+.company-name{font-size:11px;color:var(--text);font-weight:500;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.company-badge{font-size:10px;color:var(--muted);background:var(--dim);border-radius:4px;padding:1px 6px;margin-left:2px;}
+.header-search{flex:1;max-width:520px;display:flex;gap:8px;}
+.search-box{flex:1;display:flex;align-items:center;background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0 12px;gap:8px;}
+.search-box input{flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--text);padding:9px 0;width:100%;}
+.btn-ask{background:var(--accent);border:none;border-radius:8px;padding:0 18px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;flex-shrink:0;font-family:inherit;height:38px;}
+.btn-ask:disabled{background:var(--dim);cursor:default;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.btn-settings{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;font-family:inherit;}
+/* AI BAR */
+#ai-bar{background:rgba(74,127,229,.07);border-bottom:1px solid rgba(74,127,229,.2);padding:12px 24px;display:flex;gap:12px;align-items:flex-start;}
+.ai-icon{width:20px;height:20px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;color:#fff;}
+/* TABS */
+#tab-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;}
+.tab-btn{background:none;border:none;padding:13px 18px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+#tab-content{padding:20px;}
+/* CHARTS */
+.chart-wrap{position:relative;height:200px;}
+.chart-wrap-220{position:relative;height:220px;}
+/* LEGEND */
+.legend{display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap;align-items:center;}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;}
+.legend-line{width:16px;height:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+.source-note{font-size:10px;color:var(--muted);text-align:right;margin-top:6px;}
+/* COMP BANDS */
+.comp-band-wrap{display:flex;flex-direction:column;gap:15px;margin-top:4px;}
+.comp-band-header{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;}
+.comp-band-bar{position:relative;height:8px;background:var(--elevated);border-radius:4px;}
+.comp-band-median{position:absolute;width:1.5px;height:100%;background:var(--border);}
+.comp-band-dot{position:absolute;width:12px;height:12px;border-radius:50%;top:-2px;border:2px solid var(--elevated);transform:translateX(-50%);}
+.comp-band-ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;}
+/* INSIGHTS */
+.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;}
+.insight-card{background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.insight-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.insight-body{font-size:12px;color:var(--muted);line-height:1.65;}
+.scorecard-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.action-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.action-text{font-size:12px;color:var(--text);line-height:1.55;}
+.action-meta{font-size:11px;color:var(--muted);margin-top:3px;}
+/* PEERS */
+.peer-tag{background:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:6px;}
+.peer-tag button{background:none;border:none;cursor:pointer;padding:0;color:var(--muted);font-size:14px;line-height:1;}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+label.fl{font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px;}
+.fg{margin-bottom:18px;}
+.ai-gen-badge{font-size:11px;color:var(--muted);background:var(--elevated);border:1px solid var(--border);border-radius:6px;padding:3px 10px;display:inline-block;margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ SETUP ════════════════ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="logo-row">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div style="font-weight:700;font-size:17px">TalentIQ</div>
+        <div style="font-size:11px;color:var(--muted)">Talent Intelligence Platform</div>
+      </div>
+    </div>
+    <div class="setup-form">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">Configure your workspace</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Benchmark your company against competitors, or explore general market trends.</div>
+      <div style="display:flex;gap:10px;margin-bottom:24px">
+        <button class="mode-btn active" id="mode-benchmarked" onclick="setMode('benchmarked')">
+          <div class="mode-btn-label">🏢 Company + Benchmarks</div>
+          <div class="mode-btn-desc">Compare against specific competitors</div>
+        </button>
+        <button class="mode-btn" id="mode-market-only" onclick="setMode('market-only')">
+          <div class="mode-btn-label">🌊 Market Pulse Only</div>
+          <div class="mode-btn-desc">General trends, no company context</div>
+        </button>
+      </div>
+      <div class="fg" id="company-field">
+        <label class="fl">YOUR COMPANY</label>
+        <input type="text" id="setup-company" placeholder="e.g. Nestlé, P&G, Unilever…" oninput="updateLaunchBtn()">
+      </div>
+      <div class="fg">
+        <label class="fl">INDUSTRY</label>
+        <select id="setup-industry">
+          <option>Consumer Packaged Goods</option><option>Technology</option>
+          <option>Financial Services</option><option>Healthcare</option>
+          <option>Retail</option><option>Manufacturing</option>
+          <option>Media &amp; Entertainment</option><option>Professional Services</option>
+          <option>Energy</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fg" id="peers-field">
+        <label class="fl">BENCHMARK COMPETITORS <span style="color:var(--dim)">(up to 8)</span></label>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="peer-input" placeholder="Type a company and press Enter or +" style="flex:1" onkeydown="if(event.key==='Enter')addPeer()">
+          <button class="btn-icon" onclick="addPeer()">+</button>
+        </div>
+        <div id="peer-tags" style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted)">
+          No competitors yet. Add 2–5 for meaningful benchmarking.
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">ANTHROPIC API KEY <span style="color:var(--dim)">(optional — enables AI Ask)</span></label>
+        <input type="password" id="setup-apikey" placeholder="sk-ant-…">
+      </div>
+      <button class="btn-primary" id="launch-btn" onclick="launchDashboard()" disabled>Launch Dashboard →</button>
+      <div id="setup-hint" style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">
+        Add your company name and at least 1 competitor to continue.
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:14px">
+      Sources: LinkedIn Talent Insights · layoffs.fyi · Radford/Mercer · WARN Act · Lightcast
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ DASHBOARD ════════════════ -->
+<div id="dashboard" style="display:none">
+  <header id="dash-header">
+    <div class="header-logo">
+      <div class="header-logo-icon">✦</div>
+      <span style="font-weight:700;font-size:14px">TalentIQ</span>
+      <div class="company-pill" onclick="openSettings()">
+        <span style="font-size:11px;color:var(--muted)">🏢</span>
+        <span class="company-name" id="header-company">—</span>
+        <span class="company-badge" id="header-badge">Market Only</span>
+      </div>
+    </div>
+    <div class="header-search">
+      <div class="search-box">
+        <span style="color:var(--muted)">🔍</span>
+        <input type="text" id="ai-input" placeholder="Ask about market trends, talent supply, comp…" onkeydown="if(event.key==='Enter')askAI()">
+      </div>
+      <button class="btn-ask" id="ask-btn" onclick="askAI()">Ask AI</button>
+    </div>
+    <div class="header-right">
+      <span style="font-size:11px;color:var(--muted)">Updated <span style="color:var(--text)">Feb 17, 2026</span></span>
+      <button class="btn-settings" onclick="openSettings()">⚙ Settings</button>
+    </div>
+  </header>
+
+  <div id="ai-bar" style="display:none">
+    <div class="ai-icon">✦</div>
+    <div id="ai-response" style="font-size:13px;line-height:1.65;flex:1"></div>
+    <button onclick="closeAiBar()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:0 4px;flex-shrink:0">×</button>
+  </div>
+
+  <nav id="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('pulse',this)">🌊 Market Pulse</button>
+    <button class="tab-btn" onclick="switchTab('supply',this)">👥 Talent Supply</button>
+    <button class="tab-btn" onclick="switchTab('comp',this)">💰 Comp Intelligence</button>
+    <button class="tab-btn" onclick="switchTab('pipeline',this)">📊 Pipeline Health</button>
+    <button class="tab-btn" onclick="switchTab('exec',this)">⚡ Executive View</button>
+  </nav>
+
+  <main id="tab-content"></main>
+</div>
+
+<!-- ════════════════ SETTINGS MODAL ════════════════ -->
+<div class="modal-overlay" id="settings-modal" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div style="font-size:15px;font-weight:700">Dashboard Settings</div>
+      <button onclick="closeSettings()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:22px;line-height:1">×</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px">
+      <button class="mode-btn active" id="smode-benchmarked" onclick="setSettingsMode('benchmarked')"><div class="mode-btn-label">Company + Benchmarks</div></button>
+      <button class="mode-btn" id="smode-market-only" onclick="setSettingsMode('market-only')"><div class="mode-btn-label">Market Pulse Only</div></button>
+    </div>
+    <div class="fg" id="s-company-field">
+      <label class="fl">YOUR COMPANY</label>
+      <input type="text" id="s-company" placeholder="Company name">
+    </div>
+    <div class="fg">
+      <label class="fl">INDUSTRY</label>
+      <select id="s-industry">
+        <option>Consumer Packaged Goods</option><option>Technology</option>
+        <option>Financial Services</option><option>Healthcare</option>
+        <option>Retail</option><option>Manufacturing</option>
+        <option>Media &amp; Entertainment</option><option>Professional Services</option>
+        <option>Energy</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fg" id="s-peers-field">
+      <label class="fl">COMPETITORS</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="s-peer-input" placeholder="Add competitor…" style="flex:1" onkeydown="if(event.key==='Enter')addSettingsPeer()">
+        <button class="btn-icon" onclick="addSettingsPeer()" style="width:38px;height:38px">+</button>
+      </div>
+      <div id="s-peer-tags" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">ANTHROPIC API KEY</label>
+      <input type="password" id="s-apikey" placeholder="sk-ant-…">
+    </div>
+    <button class="btn-primary" onclick="saveSettings()" style="border-radius:8px;padding:11px">Save Changes</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const IDATA = {
+  "Consumer Packaged Goods":{
+    kpi:{layoffs:"9,320",displaced:"~22.5K",hiringIdx:"53/100",tightness:"Medium",tightnessC:"amber",tightnessTrend:"Easing in Marketing"},
+    layoffList:[{co:"Unilever",dt:"Jan 22",n:"3,200",fn:"Marketing & Sales"},{co:"PepsiCo",dt:"Jan 8",n:"1,500",fn:"Tech & Digital"},{co:"Kraft Heinz",dt:"Jan 28",n:"1,200",fn:"Corporate/G&A"},{co:"Danone",dt:"Dec 18",n:"2,100",fn:"R&D / Innovation"},{co:"Mondelēz",dt:"Jan 15",n:"870",fn:"Supply Chain"},{co:"Conagra",dt:"Dec 10",n:"450",fn:"Finance"}],
+    dispFns:[{fn:"Tech & Digital",c:8400},{fn:"Marketing",c:5200},{fn:"Finance/G&A",c:4100},{fn:"Supply Chain",c:3800},{fn:"R&D",c:2100},{fn:"Sales",c:1900}],
+    hiringTrend:[{m:"Aug",v:72},{m:"Sep",v:68},{m:"Oct",v:64},{m:"Nov",v:61},{m:"Dec",v:57},{m:"Jan",v:53}],
+    sd:[{r:"Brand Mgmt",s:82,d:94},{r:"RGM",s:41,d:88},{r:"Supply Chain",s:75,d:79},{r:"Food Sci",s:38,d:72},{r:"eComm",s:55,d:91},{r:"Data/AI",s:63,d:95},{r:"Fin Plan",s:70,d:65},{r:"HR/TA",s:68,d:60}],
+    skills:[{k:"k1",label:"RGM",color:"#4A7FE5"},{k:"k2",label:"eComm",color:"#2DD4A0"},{k:"k3",label:"Data/AI",color:"#A78BFA"},{k:"k4",label:"Sustainability",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:42,k2:55,k3:63,k4:38},{m:"Sep",k1:45,k2:58,k3:67,k4:42},{m:"Oct",k1:47,k2:62,k3:71,k4:44},{m:"Nov",k1:49,k2:66,k3:76,k4:47},{m:"Dec",k1:52,k2:70,k3:80,k4:51},{m:"Jan",k1:55,k2:74,k3:85,k4:54}],
+    compBands:[{role:"Brand Manager",p25:88,p50:105,p75:124,p90:145,ours:102},{role:"Sr. Brand Mgr",p25:115,p50:138,p75:162,p90:188,ours:130},{role:"RGM Manager",p25:95,p50:118,p75:140,p90:165,ours:110},{role:"Supply Chain Mgr",p25:85,p50:102,p75:121,p90:142,ours:108},{role:"Data Scientist",p25:105,p50:128,p75:155,p90:185,ours:118},{role:"Food Scientist",p25:78,p50:94,p75:113,p90:132,ours:100},{role:"TA Partner",p25:72,p50:88,p75:104,p90:120,ours:90}],
+    pool:"418K",scarce:"4 of 8",scarceTxt:"RGM, Food Sci, Data, eComm",ttfAvg:"52d",ttfBench:"45d",
+    execInsights:[{icon:"🌊",col:"#2DD4A0",title:"Talent Displacement Window",body:"~22.5K CPG-experienced professionals are available post Unilever, Kraft Heinz, and PepsiCo reductions. A 45–60 day proactive window exists before competitors absorb this pool. Priority: Marketing and Tech & Digital."},{icon:"💰",col:"#F26C6C",title:"Compensation Risk",body:"4 of 7 benchmarked roles sit below market P50. 38% of offer declines in the last 90 days cited comp — directly explaining the 76% OAR vs. 85% target. RGM and Data Scientist most exposed."},{icon:"🔍",col:"#F59E0B",title:"Scarcity Watch: RGM & Data",body:"RGM and Data/AI show supply indexes of 41 and 63 vs. demand of 88 and 95. CPG demand for both has risen 30%+ in 6 months. Build passive pipelines now for H2 before the market tightens further."},{icon:"📍",col:"#4A7FE5",title:"Geographic Opportunity",body:"APAC talent pools are growing +5.8% YoY — fastest globally. Europe is contracting (–1.4%). For global roles, APAC (Singapore, India) offers cost efficiency and growing density in Brand and Supply Chain."}],
+    defaultPeers:["Nestlé","P&G","Unilever","PepsiCo","Kraft Heinz","Mondelēz","Conagra"]
+  },
+  "Technology":{
+    kpi:{layoffs:"18,400",displaced:"~41K",hiringIdx:"48/100",tightness:"High",tightnessC:"red",tightnessTrend:"AI demand accelerating"},
+    layoffList:[{co:"Meta",dt:"Jan 15",n:"3,600",fn:"Tech & Engineering"},{co:"Microsoft",dt:"Jan 20",n:"1,900",fn:"Cloud & AI"},{co:"Salesforce",dt:"Dec 12",n:"1,000",fn:"Sales & Marketing"},{co:"SAP",dt:"Jan 5",n:"3,000",fn:"R&D / Product"},{co:"Intel",dt:"Dec 20",n:"5,000",fn:"Engineering"},{co:"Dell",dt:"Jan 10",n:"3,900",fn:"Corporate/G&A"}],
+    dispFns:[{fn:"Software Eng",c:15200},{fn:"Product",c:8400},{fn:"Data/AI",c:7100},{fn:"Sales/GTM",c:5800},{fn:"Design/UX",c:2900},{fn:"IT/Ops",c:2400}],
+    hiringTrend:[{m:"Aug",v:68},{m:"Sep",v:62},{m:"Oct",v:58},{m:"Nov",v:54},{m:"Dec",v:49},{m:"Jan",v:48}],
+    sd:[{r:"AI/ML Eng",s:35,d:98},{r:"Cloud Arch",s:48,d:91},{r:"Product Mgr",s:62,d:87},{r:"Cybersecurity",s:40,d:92},{r:"Data Eng",s:55,d:88},{r:"DevOps",s:60,d:82},{r:"UX Design",s:72,d:68},{r:"IT Support",s:80,d:55}],
+    skills:[{k:"k1",label:"AI/ML",color:"#4A7FE5"},{k:"k2",label:"Cloud",color:"#2DD4A0"},{k:"k3",label:"Cybersec",color:"#A78BFA"},{k:"k4",label:"Quantum",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:55,k2:60,k3:52,k4:28},{m:"Sep",k1:60,k2:63,k3:55,k4:32},{m:"Oct",k1:66,k2:66,k3:58,k4:35},{m:"Nov",k1:72,k2:68,k3:62,k4:38},{m:"Dec",k1:78,k2:71,k3:66,k4:41},{m:"Jan",k1:85,k2:74,k3:69,k4:44}],
+    compBands:[{role:"Software Eng L4",p25:145,p50:175,p75:210,p90:250,ours:165},{role:"Sr. SWE L5",p25:190,p50:230,p75:275,p90:330,ours:215},{role:"Product Manager",p25:135,p50:165,p75:200,p90:240,ours:158},{role:"Data Scientist",p25:130,p50:160,p75:195,p90:235,ours:150},{role:"ML Engineer",p25:155,p50:190,p75:228,p90:275,ours:175},{role:"UX Designer",p25:105,p50:130,p75:158,p90:190,ours:128},{role:"TA Partner",p25:85,p50:105,p75:128,p90:155,ours:100}],
+    pool:"1.2M",scarce:"5 of 8",scarceTxt:"AI/ML, Cloud, Cybersec, Quantum, Data Eng",ttfAvg:"58d",ttfBench:"48d",
+    execInsights:[{icon:"🌊",col:"#2DD4A0",title:"Displacement Opportunity",body:"~41K tech professionals are available following Intel, Dell, SAP, and Meta reductions. Strong overlap with AI/ML and Cloud roles. Proactive outreach window: next 60 days."},{icon:"💰",col:"#F26C6C",title:"Compensation Pressure",body:"AI/ML Engineers and Sr. SWE roles are 12–15% below market P50 on total comp. With FAANG and hyperscaler competition intensifying, offer declines are rising — 44% cited comp last quarter."},{icon:"🔍",col:"#F59E0B",title:"Critical Scarcity: AI/ML & Cloud",body:"AI/ML supply index sits at 35 vs. demand of 98 — the widest gap in 2 years. Cloud Architecture is similarly constrained (48/91). These roles will take 25–35% longer to fill without proactive pipeline investment."},{icon:"📍",col:"#4A7FE5",title:"APAC & Eastern Europe",body:"India's tech talent pool grew +12% YoY. Eastern Europe (Poland, Romania) offers strong engineering supply at 30–40% lower cost. Both are underutilized for AI/ML and Data Engineering hiring."}],
+    defaultPeers:["Google","Microsoft","Meta","Amazon","Apple","Salesforce","SAP"]
+  },
+  "Healthcare":{
+    kpi:{layoffs:"6,800",displaced:"~14K",hiringIdx:"61/100",tightness:"High",tightnessC:"red",tightnessTrend:"Chronic clinical shortage"},
+    layoffList:[{co:"CVS Health",dt:"Jan 18",n:"2,900",fn:"Corporate/G&A"},{co:"Cigna",dt:"Dec 15",n:"1,200",fn:"Admin & Ops"},{co:"Philips",dt:"Jan 25",n:"1,400",fn:"R&D / Engineering"},{co:"Medtronic",dt:"Dec 8",n:"600",fn:"Manufacturing"},{co:"Centene",dt:"Jan 10",n:"500",fn:"Corporate/G&A"},{co:"Hims & Hers",dt:"Jan 28",n:"200",fn:"Marketing"}],
+    dispFns:[{fn:"Corporate/Admin",c:4200},{fn:"Clinical Support",c:3100},{fn:"Health IT",c:2800},{fn:"R&D",c:2100},{fn:"Manufacturing",c:1200},{fn:"Sales/Marketing",c:600}],
+    hiringTrend:[{m:"Aug",v:78},{m:"Sep",v:75},{m:"Oct",v:74},{m:"Nov",v:70},{m:"Dec",v:67},{m:"Jan",v:61}],
+    sd:[{r:"Nurses/RN",s:28,d:98},{r:"Physicians",s:32,d:95},{r:"Health IT",s:55,d:88},{r:"Clinical Ops",s:48,d:82},{r:"Regulatory",s:42,d:79},{r:"Data/Analytics",s:60,d:85},{r:"Med Device",s:65,d:70},{r:"HR/TA",s:70,d:58}],
+    skills:[{k:"k1",label:"Health IT",color:"#4A7FE5"},{k:"k2",label:"Telehealth",color:"#2DD4A0"},{k:"k3",label:"AI Diagnostics",color:"#A78BFA"},{k:"k4",label:"Genomics",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:48,k2:52,k3:38,k4:30},{m:"Sep",k1:52,k2:57,k3:43,k4:33},{m:"Oct",k1:56,k2:62,k3:49,k4:36},{m:"Nov",k1:60,k2:67,k3:55,k4:39},{m:"Dec",k1:64,k2:72,k3:61,k4:42},{m:"Jan",k1:68,k2:77,k3:68,k4:45}],
+    compBands:[{role:"Registered Nurse",p25:72,p50:88,p75:105,p90:125,ours:92},{role:"Clinical Specialist",p25:85,p50:104,p75:125,p90:148,ours:98},{role:"Health IT Manager",p25:95,p50:118,p75:142,p90:168,ours:110},{role:"Regulatory Affairs Mgr",p25:90,p50:112,p75:135,p90:160,ours:105},{role:"Data Scientist",p25:108,p50:132,p75:160,p90:192,ours:122},{role:"Med Device Sales",p25:78,p50:98,p75:120,p90:148,ours:95},{role:"TA Partner",p25:68,p50:84,p75:100,p90:118,ours:80}],
+    pool:"285K",scarce:"5 of 8",scarceTxt:"Nurses, Physicians, Regulatory, Health IT, AI Diagnostics",ttfAvg:"64d",ttfBench:"52d",
+    execInsights:[{icon:"🌊",col:"#F59E0B",title:"Clinical Shortage Worsening",body:"RN and physician supply indexes are at 28 and 32 — the lowest in 5 years. Displaced talent from recent admin layoffs skews heavily toward corporate roles, not clinical. Proactive sourcing must target clinical pathways and new grad pipelines."},{icon:"💰",col:"#F26C6C",title:"Travel Nurse Premium Pressure",body:"Permanent RN comp has risen 18% YoY due to travel nurse arbitrage. Health IT and Regulatory Affairs remain below P50 and are losing candidates to MedTech firms."},{icon:"🔍",col:"#F59E0B",title:"Scarcity: Nurses & Physicians",body:"Nurse supply is 28 vs. demand 98 — structurally broken market. AI Diagnostics and Genomics skills are emerging fast with almost no available candidate pool. Partner with academic medical centers now."},{icon:"📍",col:"#4A7FE5",title:"Philippines & India Supply",body:"Philippines remains the largest export market for trained nurses globally. India has significant Health IT talent growing at +8% YoY. Both are underutilized in most US health system TA strategies."}],
+    defaultPeers:["CVS Health","UnitedHealth","Cigna","Humana","Medtronic","J&J"]
+  },
+  "Financial Services":{
+    kpi:{layoffs:"11,200",displaced:"~28K",hiringIdx:"57/100",tightness:"Medium",tightnessC:"amber",tightnessTrend:"Stabilizing post-2024 reductions"},
+    layoffList:[{co:"Goldman Sachs",dt:"Jan 12",n:"1,800",fn:"Investment Banking"},{co:"Citigroup",dt:"Jan 5",n:"4,500",fn:"Corporate/Ops"},{co:"Morgan Stanley",dt:"Dec 20",n:"1,200",fn:"Wealth Mgmt"},{co:"Wells Fargo",dt:"Jan 18",n:"2,100",fn:"Retail Banking"},{co:"BlackRock",dt:"Dec 10",n:"600",fn:"Technology"},{co:"Fidelity",dt:"Jan 22",n:"1,000",fn:"Operations"}],
+    dispFns:[{fn:"Ops/Back Office",c:9800},{fn:"FinTech/Tech",c:6100},{fn:"Invest. Banking",c:5200},{fn:"Compliance/Risk",c:3400},{fn:"Wealth Mgmt",c:2800},{fn:"Corporate/G&A",c:700}],
+    hiringTrend:[{m:"Aug",v:65},{m:"Sep",v:63},{m:"Oct",v:60},{m:"Nov",v:58},{m:"Dec",v:55},{m:"Jan",v:57}],
+    sd:[{r:"Quant/Risk",s:42,d:88},{r:"FinTech/Dev",s:50,d:90},{r:"Compliance",s:55,d:78},{r:"IB Analyst",s:68,d:82},{r:"Data/AI",s:58,d:92},{r:"Wealth Mgmt",s:72,d:68},{r:"Actuarial",s:38,d:75},{r:"HR/TA",s:70,d:55}],
+    skills:[{k:"k1",label:"FinTech/Dev",color:"#4A7FE5"},{k:"k2",label:"Quant/Risk",color:"#2DD4A0"},{k:"k3",label:"Data/AI",color:"#A78BFA"},{k:"k4",label:"ESG/Compliance",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:50,k2:48,k3:60,k4:35},{m:"Sep",k1:54,k2:51,k3:64,k4:38},{m:"Oct",k1:58,k2:54,k3:68,k4:42},{m:"Nov",k1:62,k2:57,k3:73,k4:45},{m:"Dec",k1:66,k2:60,k3:78,k4:48},{m:"Jan",k1:70,k2:63,k3:83,k4:52}],
+    compBands:[{role:"IB Analyst",p25:95,p50:120,p75:148,p90:180,ours:112},{role:"Risk Manager",p25:105,p50:130,p75:158,p90:192,ours:122},{role:"Quant Analyst",p25:130,p50:165,p75:200,p90:245,ours:155},{role:"Compliance Mgr",p25:88,p50:112,p75:138,p90:168,ours:106},{role:"FinTech Engineer",p25:120,p50:148,p75:182,p90:220,ours:138},{role:"Financial Advisor",p25:75,p50:95,p75:120,p90:155,ours:90},{role:"TA Partner",p25:78,p50:96,p75:115,p90:138,ours:92}],
+    pool:"520K",scarce:"4 of 8",scarceTxt:"Quant/Risk, FinTech, Data/AI, Actuarial",ttfAvg:"55d",ttfBench:"46d",
+    execInsights:[{icon:"🌊",col:"#2DD4A0",title:"Back-Office Displacement",body:"~9,800 Operations professionals are available from Citigroup and Wells Fargo reductions. Strong talent for shared services and ops transformation roles. 60-day absorption window before boutique firms capture them."},{icon:"💰",col:"#F26C6C",title:"Quant & FinTech Comp Pressure",body:"Quantitative Analysts and FinTech Engineers remain significantly below P50 vs. hedge funds and fintech startups. 41% of offer declines in Q4 cited comp, concentrated in Data/AI and Quant roles."},{icon:"🔍",col:"#F59E0B",title:"Actuarial & Quant Scarcity",body:"Actuarial supply index is 38 vs. demand of 75 — a structural gap worsening with regulatory complexity. FinTech/Dev demand hit 90 in January, driven by payments modernization and open banking mandates."},{icon:"📍",col:"#4A7FE5",title:"Eastern Europe Quant Talent",body:"Eastern Europe (Poland, Czech Republic, Hungary) has the highest per-capita density of quant and mathematical talent globally, at 25–40% lower cost than NYC or London."}],
+    defaultPeers:["JPMorgan","Goldman Sachs","Morgan Stanley","BlackRock","Citigroup","Wells Fargo"]
+  },
+  "Retail":{
+    kpi:{layoffs:"7,400",displaced:"~16K",hiringIdx:"58/100",tightness:"Low-Med",tightnessC:"green",tightnessTrend:"Stabilizing post-holiday"},
+    layoffList:[{co:"Gap Inc.",dt:"Jan 14",n:"1,800",fn:"Corporate/G&A"},{co:"Nike",dt:"Jan 20",n:"1,600",fn:"Marketing & Design"},{co:"Macy's",dt:"Dec 18",n:"2,300",fn:"Store Operations"},{co:"Wayfair",dt:"Jan 8",n:"900",fn:"Tech & Product"},{co:"Kohl's",dt:"Dec 28",n:"500",fn:"Corporate"},{co:"Foot Locker",dt:"Jan 15",n:"300",fn:"Store Management"}],
+    dispFns:[{fn:"Store Operations",c:5800},{fn:"Corporate/G&A",c:4200},{fn:"Marketing/Creative",c:2900},{fn:"Tech & eComm",c:2100},{fn:"Merchandising",c:1400},{fn:"Supply Chain",c:500}],
+    hiringTrend:[{m:"Aug",v:64},{m:"Sep",v:61},{m:"Oct",v:60},{m:"Nov",v:62},{m:"Dec",v:58},{m:"Jan",v:58}],
+    sd:[{r:"eComm/Digital",s:55,d:88},{r:"Merchandising",s:70,d:75},{r:"Supply Chain",s:68,d:78},{r:"Data/Analytics",s:52,d:84},{r:"Store Ops",s:82,d:70},{r:"UX/Design",s:65,d:72},{r:"Brand/Mktg",s:72,d:78},{r:"HR/TA",s:75,d:58}],
+    skills:[{k:"k1",label:"eComm",color:"#4A7FE5"},{k:"k2",label:"Data/Analytics",color:"#2DD4A0"},{k:"k3",label:"Supply Chain",color:"#A78BFA"},{k:"k4",label:"Personalization",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:55,k2:48,k3:60,k4:38},{m:"Sep",k1:58,k2:52,k3:62,k4:42},{m:"Oct",k1:62,k2:55,k3:65,k4:45},{m:"Nov",k1:65,k2:58,k3:67,k4:49},{m:"Dec",k1:68,k2:62,k3:70,k4:52},{m:"Jan",k1:72,k2:65,k3:72,k4:56}],
+    compBands:[{role:"Merchandising Mgr",p25:72,p50:90,p75:110,p90:132,ours:86},{role:"eCommerce Manager",p25:88,p50:108,p75:132,p90:158,ours:102},{role:"Supply Chain Mgr",p25:80,p50:98,p75:118,p90:142,ours:95},{role:"Brand Manager",p25:78,p50:96,p75:118,p90:142,ours:90},{role:"Data Analyst",p25:72,p50:88,p75:108,p90:130,ours:84},{role:"District Store Mgr",p25:65,p50:80,p75:98,p90:118,ours:78},{role:"TA Partner",p25:62,p50:78,p75:95,p90:114,ours:75}],
+    pool:"380K",scarce:"2 of 8",scarceTxt:"eComm/Digital, Data/Analytics",ttfAvg:"46d",ttfBench:"42d",
+    execInsights:[{icon:"🌊",col:"#2DD4A0",title:"Corporate Talent Windfall",body:"~7K corporate and marketing professionals are available from Gap, Nike, and Macy's reductions. Strong overlap with Brand, Merchandising, and eCommerce. Window is 30–45 days before Amazon and DTC brands absorb the pool."},{icon:"💰",col:"#F59E0B",title:"eComm Comp Gap Emerging",body:"eCommerce Manager and Digital Analytics roles now trail tech-adjacent competitors (Amazon, Shopify, DTC) by $18–25K in total comp. A growing retention and attraction risk in your highest-demand function."},{icon:"🔍",col:"#F59E0B",title:"eComm & Data Scarcity",body:"eComm/Digital supply is 55 vs. demand of 88 — a gap that has widened 20pts in 12 months as DTC and marketplace hiring accelerates. Data/Analytics is similarly constrained as retail builds personalization capability."},{icon:"📍",col:"#4A7FE5",title:"Secondary Market Opportunity",body:"Minneapolis, Columbus, and Atlanta have emerging retail and merchandising talent pools growing faster than NYC and LA, with 20–30% lower comp expectations."}],
+    defaultPeers:["Amazon","Walmart","Target","Nike","Gap Inc.","Macy's","Costco"]
+  },
+  "Manufacturing":{
+    kpi:{layoffs:"8,100",displaced:"~18K",hiringIdx:"55/100",tightness:"Medium",tightnessC:"amber",tightnessTrend:"Automation demand rising"},
+    layoffList:[{co:"3M",dt:"Jan 10",n:"2,500",fn:"Corporate/G&A"},{co:"Honeywell",dt:"Jan 22",n:"1,500",fn:"Aerospace & Defense"},{co:"GE Vernova",dt:"Dec 15",n:"1,800",fn:"Engineering"},{co:"Caterpillar",dt:"Jan 8",n:"1,200",fn:"Manufacturing Ops"},{co:"Dow Inc.",dt:"Dec 28",n:"800",fn:"R&D / Chemical"},{co:"Parker Hannifin",dt:"Jan 18",n:"300",fn:"Finance"}],
+    dispFns:[{fn:"Engineering",c:5400},{fn:"Mfg Ops",c:4800},{fn:"Corporate/G&A",c:3200},{fn:"R&D",c:2400},{fn:"Supply Chain",c:1600},{fn:"Finance",c:600}],
+    hiringTrend:[{m:"Aug",v:62},{m:"Sep",v:60},{m:"Oct",v:57},{m:"Nov",v:55},{m:"Dec",v:53},{m:"Jan",v:55}],
+    sd:[{r:"Mfg Engineers",s:52,d:88},{r:"Automation/Robot",s:38,d:92},{r:"Quality Eng",s:60,d:78},{r:"Supply Chain",s:65,d:80},{r:"Process Eng",s:55,d:82},{r:"Data/OT Analyst",s:48,d:85},{r:"EHS",s:70,d:65},{r:"HR/TA",s:72,d:58}],
+    skills:[{k:"k1",label:"Automation",color:"#4A7FE5"},{k:"k2",label:"Process Eng",color:"#2DD4A0"},{k:"k3",label:"Digital Twin",color:"#A78BFA"},{k:"k4",label:"Sustainability",color:"#F59E0B"}],
+    skillTrend:[{m:"Aug",k1:40,k2:55,k3:32,k4:38},{m:"Sep",k1:44,k2:57,k3:36,k4:41},{m:"Oct",k1:48,k2:60,k3:41,k4:44},{m:"Nov",k1:52,k2:62,k3:46,k4:48},{m:"Dec",k1:57,k2:65,k3:51,k4:51},{m:"Jan",k1:62,k2:68,k3:57,k4:54}],
+    compBands:[{role:"Manufacturing Eng",p25:78,p50:96,p75:116,p90:140,ours:92},{role:"Sr. Process Engineer",p25:95,p50:118,p75:142,p90:170,ours:110},{role:"Automation Engineer",p25:88,p50:110,p75:135,p90:162,ours:102},{role:"Quality Manager",p25:82,p50:100,p75:122,p90:148,ours:96},{role:"Supply Chain Mgr",p25:80,p50:98,p75:118,p90:142,ours:94},{role:"Data/OT Analyst",p25:72,p50:90,p75:110,p90:134,ours:86},{role:"TA Partner",p25:65,p50:80,p75:96,p90:116,ours:77}],
+    pool:"295K",scarce:"3 of 8",scarceTxt:"Automation/Robotics, Digital Twin, Data/OT",ttfAvg:"61d",ttfBench:"50d",
+    execInsights:[{icon:"🌊",col:"#2DD4A0",title:"Engineering Displacement Window",body:"~5,400 engineers are available from 3M, GE, Caterpillar, and Honeywell reductions. Strong profile overlap with Manufacturing and Process Engineering. 45-day window before defense contractors and EV manufacturers absorb this pool."},{icon:"💰",col:"#F59E0B",title:"Automation Comp Pressure",body:"Automation and Robotics Engineers are trading 15–20% above standard manufacturing comp due to automotive and semiconductor competition. Current midpoints trail P50 — a growing offer decline risk."},{icon:"🔍",col:"#F59E0B",title:"Automation & Digital Twin Scarcity",body:"Automation/Robotics supply is 38 vs. demand of 92 — severely constrained as smart manufacturing investment accelerates. Digital Twin is the fastest-growing skill demand in the sector, up 78% in 6 months."},{icon:"📍",col:"#4A7FE5",title:"Midwest & Southeast US Density",body:"Ohio, Michigan, Indiana, Tennessee, and South Carolina are highest-density manufacturing engineering markets in the US. Internationally, Germany and South Korea are strong Automation and Process Engineering sources."}],
+    defaultPeers:["3M","Honeywell","GE","Caterpillar","Emerson","Parker Hannifin","Eaton"]
+  }
+};
+
+const staticRegions=[{r:"North America",pool:"142K",g:"+2.1%",gd:1,hubs:"Chicago, NYC, Dallas",risk:"medium"},{r:"Europe",pool:"118K",g:"-1.4%",gd:-1,hubs:"London, Amsterdam, Hamburg",risk:"high"},{r:"APAC",pool:"95K",g:"+5.8%",gd:1,hubs:"Singapore, Mumbai, Sydney",risk:"low"},{r:"LATAM",pool:"41K",g:"+3.2%",gd:1,hubs:"São Paulo, Mexico City",risk:"medium"},{r:"MEA",pool:"22K",g:"+4.1%",gd:1,hubs:"Dubai, Nairobi",risk:"low"}];
+const staticFunnel=[{s:"Sourced",c:1840},{s:"Applied",c:920},{s:"Screen",c:412},{s:"Interview",c:198},{s:"Offer",c:74},{s:"Hired",c:61}];
+const staticSources=[{s:"Referrals",h:14,oar:91,ret:94},{s:"LinkedIn",h:28,oar:84,ret:88},{s:"Direct",h:4,oar:77,ret:82},{s:"Indeed",h:9,oar:72,ret:79},{s:"Agency",h:6,oar:68,ret:75}];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let cfg={mode:'benchmarked',company:'',industry:'Consumer Packaged Goods',peers:[],apiKey:''};
+let activeTab='pulse';
+let charts=[];
+let setupMode='benchmarked';
+let setupPeers=[];
+let settingsMode='benchmarked';
+let settingsPeers=[];
+
+Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+
+const CDO={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#142034',borderColor:'#1A2540',borderWidth:1,titleColor:'#5E7A9A',bodyColor:'#E8EDF5',padding:10,cornerRadius:8,mode:'index',intersect:false}},
+  scales:{x:{grid:{color:'rgba(26,37,64,0.5)'},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}},y:{grid:{color:'rgba(26,37,64,0.5)'},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}}}
+};
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+const getD=()=>IDATA[cfg.industry]||IDATA["Consumer Packaged Goods"];
+const bc=c=>(c==='red'||c==='high'?'badge-red':c==='amber'||c==='medium'?'badge-amber':'badge-green');
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const tc=d=>(d==='up'?'var(--red)':d==='dn'?'var(--green)':'var(--muted)');
+const ti=d=>(d==='up'?'↑':d==='dn'?'↓':'→');
+const sn=s=>`<div class="source-note">Source: ${s}</div>`;
+
+function kC(label,value,sub,trend,vc,src){
+  const tr=trend?`<div class="kpi-trend" style="color:${tc(trend.d)}">${ti(trend.d)} ${trend.l}</div>`:'';
+  return `<div class="kpi-card" title="${src?'Source: '+src:''}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value" style="color:${vc||'var(--text)'}">${value}</div>
+    ${sub?`<div class="kpi-sub">${sub}</div>`:''}${tr}</div>`;
+}
+
+function destroyCharts(){charts.forEach(c=>{try{c.destroy();}catch(e){}});charts=[];}
+function mkC(id,config){const el=document.getElementById(id);if(!el)return;const c=new Chart(el,config);charts.push(c);return c;}
+
+// ══════════════════════════════════════════
+// SETUP LOGIC
+// ══════════════════════════════════════════
+function setMode(m){
+  setupMode=m;
+  document.getElementById('mode-benchmarked').classList.toggle('active',m==='benchmarked');
+  document.getElementById('mode-market-only').classList.toggle('active',m==='market-only');
+  document.getElementById('company-field').style.display=m==='benchmarked'?'block':'none';
+  document.getElementById('peers-field').style.display=m==='benchmarked'?'block':'none';
+  updateLaunchBtn();
+}
+function addPeer(){
+  const inp=document.getElementById('peer-input');
+  const v=inp.value.trim();
+  if(v&&!setupPeers.includes(v)&&setupPeers.length<8){setupPeers.push(v);inp.value='';renderSetupPeers();updateLaunchBtn();}
+}
+function removeSetupPeer(p){setupPeers=setupPeers.filter(x=>x!==p);renderSetupPeers();updateLaunchBtn();}
+function renderSetupPeers(){
+  const el=document.getElementById('peer-tags');
+  el.innerHTML=setupPeers.length===0
+    ?'<span style="font-size:11px;color:var(--muted)">No competitors yet. Add 2–5 for meaningful benchmarking.</span>'
+    :setupPeers.map(p=>`<span class="peer-tag">${p}<button onclick="removeSetupPeer('${CSS.escape(p)}')">×</button></span>`).join('');
+}
+function updateLaunchBtn(){
+  const company=document.getElementById('setup-company')?.value?.trim();
+  const ok=setupMode==='market-only'||(company&&setupPeers.length>=1);
+  document.getElementById('launch-btn').disabled=!ok;
+  document.getElementById('setup-hint').style.display=ok?'none':'block';
+}
+function launchDashboard(){
+  cfg={mode:setupMode,company:document.getElementById('setup-company').value.trim()||null,industry:document.getElementById('setup-industry').value,peers:[...setupPeers],apiKey:document.getElementById('setup-apikey').value.trim()};
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  updateHeader();
+  switchTab('pulse',document.querySelector('.tab-btn'));
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function openSettings(){
+  settingsMode=cfg.mode;settingsPeers=[...cfg.peers];
+  document.getElementById('s-company').value=cfg.company||'';
+  document.getElementById('s-industry').value=cfg.industry;
+  document.getElementById('s-apikey').value=cfg.apiKey||'';
+  document.getElementById('smode-benchmarked').classList.toggle('active',settingsMode==='benchmarked');
+  document.getElementById('smode-market-only').classList.toggle('active',settingsMode==='market-only');
+  document.getElementById('s-company-field').style.display=settingsMode==='benchmarked'?'block':'none';
+  document.getElementById('s-peers-field').style.display=settingsMode==='benchmarked'?'block':'none';
+  renderSettingsPeers();
+  document.getElementById('settings-modal').style.display='flex';
+}
+function closeSettings(){document.getElementById('settings-modal').style.display='none';}
+function setSettingsMode(m){
+  settingsMode=m;
+  document.getElementById('smode-benchmarked').classList.toggle('active',m==='benchmarked');
+  document.getElementById('smode-market-only').classList.toggle('active',m==='market-only');
+  document.getElementById('s-company-field').style.display=m==='benchmarked'?'block':'none';
+  document.getElementById('s-peers-field').style.display=m==='benchmarked'?'block':'none';
+}
+function addSettingsPeer(){
+  const inp=document.getElementById('s-peer-input');
+  const v=inp.value.trim();
+  if(v&&!settingsPeers.includes(v)&&settingsPeers.length<8){settingsPeers.push(v);inp.value='';renderSettingsPeers();}
+}
+function removeSettingsPeer(p){settingsPeers=settingsPeers.filter(x=>x!==p);renderSettingsPeers();}
+function renderSettingsPeers(){
+  document.getElementById('s-peer-tags').innerHTML=settingsPeers.map(p=>`<span class="peer-tag">${p}<button onclick="removeSettingsPeer('${CSS.escape(p)}')">×</button></span>`).join('');
+}
+function saveSettings(){
+  cfg={mode:settingsMode,company:document.getElementById('s-company').value.trim()||null,industry:document.getElementById('s-industry').value,peers:[...settingsPeers],apiKey:document.getElementById('s-apikey').value.trim()};
+  closeSettings();updateHeader();destroyCharts();renderCurrentTab();
+}
+function updateHeader(){
+  const lbl=cfg.mode==='benchmarked'&&cfg.company?cfg.company:cfg.industry;
+  document.getElementById('header-company').textContent=lbl;
+  document.getElementById('header-badge').textContent=cfg.mode==='benchmarked'?`+${cfg.peers.length} peers`:'Market Only';
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(tab,btn){
+  activeTab=tab;destroyCharts();
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderCurrentTab();
+}
+function renderCurrentTab(){({pulse:renderPulse,supply:renderSupply,comp:renderComp,pipeline:renderPipeline,exec:renderExec})[activeTab]?.();}
+
+// ══════════════════════════════════════════
+// PULSE
+// ══════════════════════════════════════════
+function renderPulse(){
+  const d=getD();
+  const names=cfg.mode==='benchmarked'?[cfg.company||'Your Co',...cfg.peers]:(d.defaultPeers||[]);
+  const vals=[920,840,730,650,490,360,250,180];
+  const hd=names.slice(0,8).map((n,i)=>({n,v:vals[i]||200}));
+  const myI=cfg.mode==='benchmarked'?0:-1;
+  const hcol=hd.map((_,i)=>i===myI?'#4A7FE5':'#1E3050');
+  document.getElementById('tab-content').innerHTML=`<div class="flex-col">
+    <div class="kpi-row">
+      ${kC(`${cfg.industry} Layoffs (30d)`,d.kpi.layoffs,'Major industry firms',{d:'up',l:'+24% vs prior 30d'},'var(--red)','layoffs.fyi + WARN Act public filings')}
+      ${kC('Displaced Talent Available',d.kpi.displaced,'Industry-relevant roles',{d:'up',l:'45–60 day window'},'var(--amber)','layoffs.fyi + Challenger, Gray & Christmas Report')}
+      ${kC('Industry Hiring Index',d.kpi.hiringIdx,'100 = Aug 2025 baseline',{d:'dn',l:'Market cooling'},'','LinkedIn Talent Insights')}
+      ${kC('Market Tightness',d.kpi.tightness,'Overall supply/demand balance',{d:'flat',l:d.kpi.tightnessTrend},`var(--${d.kpi.tightnessC})`,'LinkedIn Talent Insights + Lightcast')}
+    </div>
+    <div class="grid-14">
+      <div class="card">
+        <div class="card-title">${cfg.mode==='benchmarked'?'Company Hiring vs. Benchmarks':'Industry Hiring Activity'}</div>
+        <div class="card-sub">Active open roles — LinkedIn & public postings, Jan 2026</div>
+        <div class="chart-wrap"><canvas id="ch-hiring"></canvas></div>
+        <div class="legend">
+          ${cfg.mode==='benchmarked'?`<span><span class="legend-dot" style="background:#4A7FE5"></span>${cfg.company||'Your Co'}</span><span><span class="legend-dot" style="background:#1E3050"></span>Competitors</span>`:''}
+          <span style="margin-left:auto;font-size:10px">Source: LinkedIn Talent Insights</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">${cfg.industry} Hiring Trend (6mo)</div>
+        <div class="card-sub">Composite hiring index — 100 = Aug 2025 baseline</div>
+        <div class="chart-wrap"><canvas id="ch-trend"></canvas></div>
+        ${sn('LinkedIn Talent Insights')}
+      </div>
+    </div>
+    <div class="grid-41">
+      <div class="card">
+        <div class="card-title">Displaced Talent by Function</div>
+        <div class="card-sub">Last 60 days — industry layoffs</div>
+        <div class="chart-wrap"><canvas id="ch-disp"></canvas></div>
+        ${sn('layoffs.fyi + Challenger, Gray & Christmas')}
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Layoffs Tracker</div>
+        <div class="card-sub">WARN Act, layoffs.fyi, public filings — last 60 days</div>
+        <table><thead><tr><th>Company</th><th>Date</th><th>Count</th><th>Function</th><th>Status</th></tr></thead><tbody>
+        ${d.layoffList.map(r=>`<tr><td style="color:var(--text);font-weight:500">${r.co}</td><td style="color:var(--muted)">${r.dt}</td><td style="color:var(--amber);font-weight:600">${r.n}</td><td style="color:var(--muted)">${r.fn}</td><td><span class="badge badge-green">Confirmed</span></td></tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>
+  </div>`;
+  mkC('ch-hiring',{type:'bar',data:{labels:hd.map(x=>x.n),datasets:[{data:hd.map(x=>x.v),backgroundColor:hcol,borderRadius:4,label:'Open Reqs'}]},options:CDO});
+  mkC('ch-trend',{type:'line',data:{labels:d.hiringTrend.map(x=>x.m),datasets:[{data:d.hiringTrend.map(x=>x.v),borderColor:'#4A7FE5',borderWidth:2,pointRadius:0,fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(74,127,229,0.25)');g.addColorStop(1,'rgba(74,127,229,0)');return g;},label:'Hiring Index'}]},options:{...CDO,scales:{...CDO.scales,y:{...CDO.scales.y,min:40,max:90}}}});
+  mkC('ch-disp',{type:'bar',data:{labels:d.dispFns.map(x=>x.fn),datasets:[{data:d.dispFns.map(x=>x.c),backgroundColor:'#A78BFA',borderRadius:4,label:'Displaced'}]},options:{...CDO,indexAxis:'y'}});
+}
+
+// ══════
