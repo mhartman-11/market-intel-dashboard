@@ -1,0 +1,778 @@
+import { useState } from "react";
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { TrendingUp, TrendingDown, Search, Bell, Minus, Settings, Plus, X, Building2, ChevronRight, Info } from "lucide-react";
+
+const C = {
+  bg:'#07101F', surface:'#0D1829', elevated:'#142034', border:'#1A2540',
+  accent:'#4A7FE5', green:'#2DD4A0', amber:'#F59E0B', red:'#F26C6C',
+  purple:'#A78BFA', text:'#E8EDF5', muted:'#5E7A9A', dim:'#1E3050',
+};
+
+const INDUSTRIES = ["Consumer Packaged Goods","Technology","Financial Services","Healthcare","Retail","Manufacturing","Media & Entertainment","Professional Services","Energy","Other"];
+
+// ─── INDUSTRY DATA ───────────────────────────────────────────────────────────
+const IDATA = {
+  "Consumer Packaged Goods": {
+    kpi: { layoffs:"9,320", displaced:"~22.5K", hiringIdx:"53/100", tightness:"Medium", tightnessC:C.amber, tightnessTrend:"Easing in Marketing" },
+    layoffList: [{co:"Unilever",dt:"Jan 22",n:"3,200",fn:"Marketing & Sales"},{co:"PepsiCo",dt:"Jan 8",n:"1,500",fn:"Tech & Digital"},{co:"Kraft Heinz",dt:"Jan 28",n:"1,200",fn:"Corporate/G&A"},{co:"Danone",dt:"Dec 18",n:"2,100",fn:"R&D / Innovation"},{co:"Mondelēz",dt:"Jan 15",n:"870",fn:"Supply Chain"},{co:"Conagra",dt:"Dec 10",n:"450",fn:"Finance"}],
+    dispFns: [{fn:"Tech & Digital",c:8400},{fn:"Marketing",c:5200},{fn:"Finance/G&A",c:4100},{fn:"Supply Chain",c:3800},{fn:"R&D",c:2100},{fn:"Sales",c:1900}],
+    hiringTrend: [{m:"Aug",v:72},{m:"Sep",v:68},{m:"Oct",v:64},{m:"Nov",v:61},{m:"Dec",v:57},{m:"Jan",v:53}],
+    sd: [{r:"Brand Mgmt",s:82,d:94},{r:"RGM",s:41,d:88},{r:"Supply Chain",s:75,d:79},{r:"Food Sci",s:38,d:72},{r:"eComm",s:55,d:91},{r:"Data/AI",s:63,d:95},{r:"Fin Plan",s:70,d:65},{r:"HR/TA",s:68,d:60}],
+    skills: [{k:"k1",label:"RGM",c:C.accent},{k:"k2",label:"eComm",c:C.green},{k:"k3",label:"Data/AI",c:C.purple},{k:"k4",label:"Sustainability",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:42,k2:55,k3:63,k4:38},{m:"Sep",k1:45,k2:58,k3:67,k4:42},{m:"Oct",k1:47,k2:62,k3:71,k4:44},{m:"Nov",k1:49,k2:66,k3:76,k4:47},{m:"Dec",k1:52,k2:70,k3:80,k4:51},{m:"Jan",k1:55,k2:74,k3:85,k4:54}],
+    compBands: [{role:"Brand Manager",p25:88,p50:105,p75:124,p90:145,ours:102},{role:"Sr. Brand Mgr",p25:115,p50:138,p75:162,p90:188,ours:130},{role:"RGM Manager",p25:95,p50:118,p75:140,p90:165,ours:110},{role:"Supply Chain Mgr",p25:85,p50:102,p75:121,p90:142,ours:108},{role:"Data Scientist",p25:105,p50:128,p75:155,p90:185,ours:118},{role:"Food Scientist",p25:78,p50:94,p75:113,p90:132,ours:100},{role:"TA Partner",p25:72,p50:88,p75:104,p90:120,ours:90}],
+    pool:"418K", scarce:"4 of 8", scarceTxt:"RGM, Food Sci, Data, eComm", ttfAvg:"52d", ttfBench:"45d",
+    execInsights:[
+      {icon:"🌊",col:C.green,title:"Talent Displacement Window",body:"~22.5K CPG-experienced professionals are available post Unilever, Kraft Heinz, and PepsiCo reductions. A 45–60 day proactive window exists before competitors absorb this pool. Priority: Marketing and Tech & Digital."},
+      {icon:"💰",col:C.red,title:"Compensation Risk",body:"4 of 7 benchmarked roles sit below market P50. 38% of offer declines in the last 90 days cited comp — directly explaining the 76% OAR vs. 85% target. RGM and Data Scientist most exposed."},
+      {icon:"🔍",col:C.amber,title:"Scarcity Watch: RGM & Data",body:"RGM and Data/AI show supply indexes of 41 and 63 vs. demand of 88 and 95. CPG demand for both has risen 30%+ in 6 months. Build passive pipelines now for H2 before the market tightens further."},
+      {icon:"📍",col:C.accent,title:"Geographic Opportunity",body:"APAC talent pools are growing +5.8% YoY — fastest globally. Europe is contracting (–1.4%). For global roles, APAC (Singapore, India) offers cost efficiency and growing density in Brand and Supply Chain."}
+    ],
+  },
+  "Technology": {
+    kpi: { layoffs:"18,400", displaced:"~41K", hiringIdx:"48/100", tightness:"High", tightnessC:C.red, tightnessTrend:"AI demand accelerating" },
+    layoffList: [{co:"Meta",dt:"Jan 15",n:"3,600",fn:"Tech & Engineering"},{co:"Microsoft",dt:"Jan 20",n:"1,900",fn:"Cloud & AI"},{co:"Salesforce",dt:"Dec 12",n:"1,000",fn:"Sales & Marketing"},{co:"SAP",dt:"Jan 5",n:"3,000",fn:"R&D / Product"},{co:"Intel",dt:"Dec 20",n:"5,000",fn:"Engineering"},{co:"Dell",dt:"Jan 10",n:"3,900",fn:"Corporate/G&A"}],
+    dispFns: [{fn:"Software Engineering",c:15200},{fn:"Product",c:8400},{fn:"Data/AI",c:7100},{fn:"Sales/GTM",c:5800},{fn:"Design/UX",c:2900},{fn:"IT/Ops",c:2400}],
+    hiringTrend: [{m:"Aug",v:68},{m:"Sep",v:62},{m:"Oct",v:58},{m:"Nov",v:54},{m:"Dec",v:49},{m:"Jan",v:48}],
+    sd: [{r:"AI/ML Eng",s:35,d:98},{r:"Cloud Arch",s:48,d:91},{r:"Product Mgr",s:62,d:87},{r:"Cybersecurity",s:40,d:92},{r:"Data Eng",s:55,d:88},{r:"DevOps",s:60,d:82},{r:"UX Design",s:72,d:68},{r:"IT Support",s:80,d:55}],
+    skills: [{k:"k1",label:"AI/ML",c:C.accent},{k:"k2",label:"Cloud",c:C.green},{k:"k3",label:"Cybersec",c:C.purple},{k:"k4",label:"Quantum",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:55,k2:60,k3:52,k4:28},{m:"Sep",k1:60,k2:63,k3:55,k4:32},{m:"Oct",k1:66,k2:66,k3:58,k4:35},{m:"Nov",k1:72,k2:68,k3:62,k4:38},{m:"Dec",k1:78,k2:71,k3:66,k4:41},{m:"Jan",k1:85,k2:74,k3:69,k4:44}],
+    compBands: [{role:"Software Eng L4",p25:145,p50:175,p75:210,p90:250,ours:165},{role:"Sr. Software Eng L5",p25:190,p50:230,p75:275,p90:330,ours:215},{role:"Product Manager",p25:135,p50:165,p75:200,p90:240,ours:158},{role:"Data Scientist",p25:130,p50:160,p75:195,p90:235,ours:150},{role:"ML Engineer",p25:155,p50:190,p75:228,p90:275,ours:175},{role:"UX Designer",p25:105,p50:130,p75:158,p90:190,ours:128},{role:"TA Partner",p25:85,p50:105,p75:128,p90:155,ours:100}],
+    pool:"1.2M", scarce:"5 of 8", scarceTxt:"AI/ML, Cloud, Cybersec, Quantum, Data Eng", ttfAvg:"58d", ttfBench:"48d",
+    execInsights:[
+      {icon:"🌊",col:C.green,title:"Displacement Opportunity",body:"~41K tech professionals are available following Intel, Dell, SAP, and Meta reductions. Strong overlap with AI/ML and Cloud roles where you're competing hardest. Proactive outreach window: next 60 days."},
+      {icon:"💰",col:C.red,title:"Compensation Pressure",body:"AI/ML Engineers and Sr. SWE roles are 12–15% below market P50 on total comp. With FAANG and hyperscaler competition intensifying, offer declines are rising — 44% cited comp in last quarter."},
+      {icon:"🔍",col:C.amber,title:"Critical Scarcity: AI/ML & Cloud",body:"AI/ML supply index sits at 35 vs. demand of 98 — the widest gap in 2 years. Cloud Architecture is similarly constrained (48/91). These roles will take 25–35% longer to fill without proactive pipeline investment."},
+      {icon:"📍",col:C.accent,title:"APAC & Eastern Europe Opportunity",body:"India's tech talent pool grew +12% YoY. Eastern Europe (Poland, Romania) offers strong engineering supply at 30–40% lower cost. Both geographies are underutilized for AI/ML and Data Engineering hiring."}
+    ],
+  },
+  "Healthcare": {
+    kpi: { layoffs:"6,800", displaced:"~14K", hiringIdx:"61/100", tightness:"High", tightnessC:C.red, tightnessTrend:"Chronic clinical shortage" },
+    layoffList: [{co:"CVS Health",dt:"Jan 18",n:"2,900",fn:"Corporate/G&A"},{co:"Cigna",dt:"Dec 15",n:"1,200",fn:"Admin & Ops"},{co:"Philips",dt:"Jan 25",n:"1,400",fn:"R&D / Engineering"},{co:"Medtronic",dt:"Dec 8",n:"600",fn:"Manufacturing"},{co:"Centene",dt:"Jan 10",n:"500",fn:"Corporate/G&A"},{co:"Hims & Hers",dt:"Jan 28",n:"200",fn:"Marketing"}],
+    dispFns: [{fn:"Corporate/Admin",c:4200},{fn:"Clinical Support",c:3100},{fn:"Health IT",c:2800},{fn:"R&D",c:2100},{fn:"Manufacturing",c:1200},{fn:"Sales/Marketing",c:600}],
+    hiringTrend: [{m:"Aug",v:78},{m:"Sep",v:75},{m:"Oct",v:74},{m:"Nov",v:70},{m:"Dec",v:67},{m:"Jan",v:61}],
+    sd: [{r:"Nurses/RN",s:28,d:98},{r:"Physicians",s:32,d:95},{r:"Health IT",s:55,d:88},{r:"Clinical Ops",s:48,d:82},{r:"Regulatory",s:42,d:79},{r:"Data/Analytics",s:60,d:85},{r:"Med Device",s:65,d:70},{r:"HR/TA",s:70,d:58}],
+    skills: [{k:"k1",label:"Health IT",c:C.accent},{k:"k2",label:"Telehealth",c:C.green},{k:"k3",label:"AI Diagnostics",c:C.purple},{k:"k4",label:"Genomics",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:48,k2:52,k3:38,k4:30},{m:"Sep",k1:52,k2:57,k3:43,k4:33},{m:"Oct",k1:56,k2:62,k3:49,k4:36},{m:"Nov",k1:60,k2:67,k3:55,k4:39},{m:"Dec",k1:64,k2:72,k3:61,k4:42},{m:"Jan",k1:68,k2:77,k3:68,k4:45}],
+    compBands: [{role:"Registered Nurse",p25:72,p50:88,p75:105,p90:125,ours:92},{role:"Clinical Specialist",p25:85,p50:104,p75:125,p90:148,ours:98},{role:"Health IT Manager",p25:95,p50:118,p75:142,p90:168,ours:110},{role:"Regulatory Affairs Mgr",p25:90,p50:112,p75:135,p90:160,ours:105},{role:"Data Scientist",p25:108,p50:132,p75:160,p90:192,ours:122},{role:"Med Device Sales",p25:78,p50:98,p75:120,p90:148,ours:95},{role:"TA Partner",p25:68,p50:84,p75:100,p90:118,ours:80}],
+    pool:"285K", scarce:"5 of 8", scarceTxt:"Nurses, Physicians, Regulatory, Health IT, AI Diagnostics", ttfAvg:"64d", ttfBench:"52d",
+    execInsights:[
+      {icon:"🌊",col:C.amber,title:"Clinical Shortage Worsening",body:"RN and physician supply indexes are at 28 and 32 — the lowest in 5 years. The displaced talent from recent healthcare admin layoffs skews heavily toward corporate roles, not clinical. Proactive sourcing must target clinical pathways and new grad pipelines."},
+      {icon:"💰",col:C.red,title:"Travel Nurse Premium Pressuring Comp",body:"Permanent RN comp has risen 18% YoY due to travel nurse arbitrage. Our current midpoints are above P50 for most clinical roles, but Health IT and Regulatory Affairs remain below P50 and are losing candidates to MedTech firms."},
+      {icon:"🔍",col:C.amber,title:"Scarcity: Nurses & Physicians",body:"Nurse supply is 28 vs. demand 98 — structurally broken market. AI Diagnostics and Genomics skills are emerging fast (68 and 45 demand index) with almost no available candidate pool. Partner with academic medical centers now."},
+      {icon:"📍",col:C.accent,title:"Philippines & India Clinical Supply",body:"Philippines remains the largest export market for trained nurses globally. India has significant Health IT and Clinical Data Science talent growing at +8% YoY. Both are underutilized in most US health system TA strategies."}
+    ],
+  },
+  "Financial Services": {
+    kpi: { layoffs:"11,200", displaced:"~28K", hiringIdx:"57/100", tightness:"Medium", tightnessC:C.amber, tightnessTrend:"Stabilizing post-2024 reductions" },
+    layoffList: [{co:"Goldman Sachs",dt:"Jan 12",n:"1,800",fn:"Investment Banking"},{co:"Citigroup",dt:"Jan 5",n:"4,500",fn:"Corporate/Ops"},{co:"Morgan Stanley",dt:"Dec 20",n:"1,200",fn:"Wealth Mgmt"},{co:"Wells Fargo",dt:"Jan 18",n:"2,100",fn:"Retail Banking"},{co:"BlackRock",dt:"Dec 10",n:"600",fn:"Technology"},{co:"Fidelity",dt:"Jan 22",n:"1,000",fn:"Operations"}],
+    dispFns: [{fn:"Operations/Back Office",c:9800},{fn:"FinTech/Technology",c:6100},{fn:"Investment Banking",c:5200},{fn:"Compliance/Risk",c:3400},{fn:"Wealth Mgmt",c:2800},{fn:"Corporate/G&A",c:700}],
+    hiringTrend: [{m:"Aug",v:65},{m:"Sep",v:63},{m:"Oct",v:60},{m:"Nov",v:58},{m:"Dec",v:55},{m:"Jan",v:57}],
+    sd: [{r:"Quant/Risk",s:42,d:88},{r:"FinTech/Dev",s:50,d:90},{r:"Compliance",s:55,d:78},{r:"IB Analyst",s:68,d:82},{r:"Data/AI",s:58,d:92},{r:"Wealth Mgmt",s:72,d:68},{r:"Actuarial",s:38,d:75},{r:"HR/TA",s:70,d:55}],
+    skills: [{k:"k1",label:"FinTech/Dev",c:C.accent},{k:"k2",label:"Quant/Risk",c:C.green},{k:"k3",label:"Data/AI",c:C.purple},{k:"k4",label:"ESG/Compliance",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:50,k2:48,k3:60,k4:35},{m:"Sep",k1:54,k2:51,k3:64,k4:38},{m:"Oct",k1:58,k2:54,k3:68,k4:42},{m:"Nov",k1:62,k2:57,k3:73,k4:45},{m:"Dec",k1:66,k2:60,k3:78,k4:48},{m:"Jan",k1:70,k2:63,k3:83,k4:52}],
+    compBands: [{role:"IB Analyst",p25:95,p50:120,p75:148,p90:180,ours:112},{role:"Risk Manager",p25:105,p50:130,p75:158,p90:192,ours:122},{role:"Quantitative Analyst",p25:130,p50:165,p75:200,p90:245,ours:155},{role:"Compliance Manager",p25:88,p50:112,p75:138,p90:168,ours:106},{role:"FinTech Engineer",p25:120,p50:148,p75:182,p90:220,ours:138},{role:"Financial Advisor",p25:75,p50:95,p75:120,p90:155,ours:90},{role:"TA Partner",p25:78,p50:96,p75:115,p90:138,ours:92}],
+    pool:"520K", scarce:"4 of 8", scarceTxt:"Quant/Risk, FinTech, Data/AI, Actuarial", ttfAvg:"55d", ttfBench:"46d",
+    execInsights:[
+      {icon:"🌊",col:C.green,title:"Back-Office Displacement Opportunity",body:"~9,800 Operations and Back-Office professionals are available from Citigroup and Wells Fargo reductions. Strong talent for shared services, ops transformation, and process roles. 60-day absorption window before boutique firms capture them."},
+      {icon:"💰",col:C.red,title:"Quant & FinTech Comp Pressure",body:"Quantitative Analysts and FinTech Engineers remain significantly below P50 relative to hedge fund and fintech startup competition. 41% of offer declines in Q4 cited comp, concentrated in Data/AI and Quant roles."},
+      {icon:"🔍",col:C.amber,title:"Actuarial & Quant Scarcity",body:"Actuarial supply index is 38 vs. demand of 75 — a structural gap worsening with regulatory complexity. FinTech/Dev demand index hit 90 in January, driven by payments modernization and open banking mandates."},
+      {icon:"📍",col:C.accent,title:"Eastern Europe Quant Talent",body:"Eastern Europe (Poland, Czech Republic, Hungary) has the highest per-capita density of quantitative and mathematical talent globally, at 25–40% lower cost than NYC or London. An underutilized geography for Risk and Quant hiring."}
+    ],
+  },
+  "Retail": {
+    kpi: { layoffs:"7,400", displaced:"~16K", hiringIdx:"58/100", tightness:"Low-Med", tightnessC:C.green, tightnessTrend:"Stabilizing post-holiday" },
+    layoffList: [{co:"Gap Inc.",dt:"Jan 14",n:"1,800",fn:"Corporate/G&A"},{co:"Nike",dt:"Jan 20",n:"1,600",fn:"Marketing & Design"},{co:"Macy's",dt:"Dec 18",n:"2,300",fn:"Store Operations"},{co:"Wayfair",dt:"Jan 8",n:"900",fn:"Tech & Product"},{co:"Kohl's",dt:"Dec 28",n:"500",fn:"Corporate"},{co:"Foot Locker",dt:"Jan 15",n:"300",fn:"Store Management"}],
+    dispFns: [{fn:"Store Operations",c:5800},{fn:"Corporate/G&A",c:4200},{fn:"Marketing/Creative",c:2900},{fn:"Tech & eComm",c:2100},{fn:"Merchandising",c:1400},{fn:"Supply Chain",c:500}],
+    hiringTrend: [{m:"Aug",v:64},{m:"Sep",v:61},{m:"Oct",v:60},{m:"Nov",v:62},{m:"Dec",v:58},{m:"Jan",v:58}],
+    sd: [{r:"eComm/Digital",s:55,d:88},{r:"Merchandising",s:70,d:75},{r:"Supply Chain",s:68,d:78},{r:"Data/Analytics",s:52,d:84},{r:"Store Ops",s:82,d:70},{r:"UX/Design",s:65,d:72},{r:"Brand/Mktg",s:72,d:78},{r:"HR/TA",s:75,d:58}],
+    skills: [{k:"k1",label:"eComm",c:C.accent},{k:"k2",label:"Data/Analytics",c:C.green},{k:"k3",label:"Supply Chain",c:C.purple},{k:"k4",label:"Personalization",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:55,k2:48,k3:60,k4:38},{m:"Sep",k1:58,k2:52,k3:62,k4:42},{m:"Oct",k1:62,k2:55,k3:65,k4:45},{m:"Nov",k1:65,k2:58,k3:67,k4:49},{m:"Dec",k1:68,k2:62,k3:70,k4:52},{m:"Jan",k1:72,k2:65,k3:72,k4:56}],
+    compBands: [{role:"Merchandising Manager",p25:72,p50:90,p75:110,p90:132,ours:86},{role:"eCommerce Manager",p25:88,p50:108,p75:132,p90:158,ours:102},{role:"Supply Chain Mgr",p25:80,p50:98,p75:118,p90:142,ours:95},{role:"Brand Manager",p25:78,p50:96,p75:118,p90:142,ours:90},{role:"Data Analyst",p25:72,p50:88,p75:108,p90:130,ours:84},{role:"District Store Mgr",p25:65,p50:80,p75:98,p90:118,ours:78},{role:"TA Partner",p25:62,p50:78,p75:95,p90:114,ours:75}],
+    pool:"380K", scarce:"2 of 8", scarceTxt:"eComm/Digital, Data/Analytics", ttfAvg:"46d", ttfBench:"42d",
+    execInsights:[
+      {icon:"🌊",col:C.green,title:"Corporate Talent Windfall",body:"~7K corporate and marketing professionals are available from Gap, Nike, and Macy's reductions. Strong overlap with Brand, Merchandising, and eCommerce roles. Window is 30–45 days before Amazon and DTC brands absorb the pool."},
+      {icon:"💰",col:C.amber,title:"eComm Comp Gap Emerging",body:"eCommerce Manager and Digital Analytics roles are now trailing tech-adjacent competitors (Amazon, Shopify, DTC brands) by $18–25K in total comp. This is a growing retention and attraction risk in your highest-demand function."},
+      {icon:"🔍",col:C.amber,title:"eComm & Data Scarcity Growing",body:"eComm/Digital supply is 55 vs. demand of 88 — a gap that has widened 20pts in 12 months as DTC and marketplace hiring accelerates. Data/Analytics is similarly constrained as retail organizations try to build personalization capability."},
+      {icon:"📍",col:C.accent,title:"Secondary Market Opportunity",body:"Minneapolis, Columbus, and Atlanta have emerging retail and merchandising talent pools growing faster than NYC and LA, with 20–30% lower comp expectations. Worth exploring as alternative sourcing geographies for corporate roles."}
+    ],
+  },
+  "Manufacturing": {
+    kpi: { layoffs:"8,100", displaced:"~18K", hiringIdx:"55/100", tightness:"Medium", tightnessC:C.amber, tightnessTrend:"Automation demand rising" },
+    layoffList: [{co:"3M",dt:"Jan 10",n:"2,500",fn:"Corporate/G&A"},{co:"Honeywell",dt:"Jan 22",n:"1,500",fn:"Aerospace & Defense"},{co:"GE Vernova",dt:"Dec 15",n:"1,800",fn:"Engineering"},{co:"Caterpillar",dt:"Jan 8",n:"1,200",fn:"Manufacturing Ops"},{co:"Dow Inc.",dt:"Dec 28",n:"800",fn:"R&D / Chemical"},{co:"Parker Hannifin",dt:"Jan 18",n:"300",fn:"Finance"}],
+    dispFns: [{fn:"Engineering",c:5400},{fn:"Manufacturing Ops",c:4800},{fn:"Corporate/G&A",c:3200},{fn:"R&D",c:2400},{fn:"Supply Chain",c:1600},{fn:"Finance",c:600}],
+    hiringTrend: [{m:"Aug",v:62},{m:"Sep",v:60},{m:"Oct",v:57},{m:"Nov",v:55},{m:"Dec",v:53},{m:"Jan",v:55}],
+    sd: [{r:"Mfg Engineers",s:52,d:88},{r:"Automation/Robot",s:38,d:92},{r:"Quality Eng",s:60,d:78},{r:"Supply Chain",s:65,d:80},{r:"Process Eng",s:55,d:82},{r:"Data/OT Analyst",s:48,d:85},{r:"EHS",s:70,d:65},{r:"HR/TA",s:72,d:58}],
+    skills: [{k:"k1",label:"Automation",c:C.accent},{k:"k2",label:"Process Eng",c:C.green},{k:"k3",label:"Digital Twin",c:C.purple},{k:"k4",label:"Sustainability",c:C.amber}],
+    skillTrend: [{m:"Aug",k1:40,k2:55,k3:32,k4:38},{m:"Sep",k1:44,k2:57,k3:36,k4:41},{m:"Oct",k1:48,k2:60,k3:41,k4:44},{m:"Nov",k1:52,k2:62,k3:46,k4:48},{m:"Dec",k1:57,k2:65,k3:51,k4:51},{m:"Jan",k1:62,k2:68,k3:57,k4:54}],
+    compBands: [{role:"Manufacturing Engineer",p25:78,p50:96,p75:116,p90:140,ours:92},{role:"Sr. Process Engineer",p25:95,p50:118,p75:142,p90:170,ours:110},{role:"Automation Engineer",p25:88,p50:110,p75:135,p90:162,ours:102},{role:"Quality Manager",p25:82,p50:100,p75:122,p90:148,ours:96},{role:"Supply Chain Mgr",p25:80,p50:98,p75:118,p90:142,ours:94},{role:"Data/OT Analyst",p25:72,p50:90,p75:110,p90:134,ours:86},{role:"TA Partner",p25:65,p50:80,p75:96,p90:116,ours:77}],
+    pool:"295K", scarce:"3 of 8", scarceTxt:"Automation/Robotics, Digital Twin, Data/OT", ttfAvg:"61d", ttfBench:"50d",
+    execInsights:[
+      {icon:"🌊",col:C.green,title:"Engineering Displacement Window",body:"~5,400 engineers are available from 3M, GE, Caterpillar, and Honeywell reductions. Strong profile overlap with Manufacturing and Process Engineering roles. 45-day window before defense contractors and EV manufacturers absorb this pool."},
+      {icon:"💰",col:C.amber,title:"Automation Comp Pressure",body:"Automation and Robotics Engineers are trading 15–20% above standard manufacturing comp due to automotive and semiconductor competition. Current midpoints trail P50 in this sub-function — a growing offer decline risk."},
+      {icon:"🔍",col:C.amber,title:"Automation & Digital Twin Scarcity",body:"Automation/Robotics supply is 38 vs. demand of 92 — severely constrained as smart manufacturing investment accelerates. Digital Twin is the fastest-growing skill demand in the sector, growing 78% in 6 months from a low base."},
+      {icon:"📍",col:C.accent,title:"Midwest & Southeast US Talent Density",body:"Ohio, Michigan, Indiana, Tennessee, and South Carolina are the highest-density manufacturing engineering markets in the US, with growing automation talent clusters. Internationally, Germany and South Korea are strong Automation and Process Engineering sources."}
+    ],
+  },
+};
+
+const fallbackIndustry = (industry) => IDATA[industry] || IDATA["Consumer Packaged Goods"];
+
+const staticRegions = [{r:"North America",pool:"142K",g:"+2.1%",gd:1,hubs:"Chicago, NYC, Dallas",risk:"medium"},{r:"Europe",pool:"118K",g:"-1.4%",gd:-1,hubs:"London, Amsterdam, Hamburg",risk:"high"},{r:"APAC",pool:"95K",g:"+5.8%",gd:1,hubs:"Singapore, Mumbai, Sydney",risk:"low"},{r:"LATAM",pool:"41K",g:"+3.2%",gd:1,hubs:"São Paulo, Mexico City",risk:"medium"},{r:"MEA",pool:"22K",g:"+4.1%",gd:1,hubs:"Dubai, Nairobi",risk:"low"}];
+const staticFunnel = [{s:"Sourced",c:1840},{s:"Applied",c:920},{s:"Screen",c:412},{s:"Interview",c:198},{s:"Offer",c:74},{s:"Hired",c:61}];
+const staticSources = [{s:"Referrals",h:14,oar:91,ret:94},{s:"LinkedIn",h:28,oar:84,ret:88},{s:"Direct",h:4,oar:77,ret:82},{s:"Indeed",h:9,oar:72,ret:79},{s:"Agency",h:6,oar:68,ret:75}];
+const staticAtRisk = [{req:"Sr. Brand Mgr – NA",rec:"J. Torres",open:72,gap:"+12d",risk:"high"},{req:"RGM Lead – Europe",rec:"S. Patel",open:65,gap:"+10d",risk:"high"},{req:"Data Scientist – APAC",rec:"M. Chen",open:58,gap:"+8d",risk:"medium"},{req:"Food Scientist – NA",rec:"K. Adams",open:49,gap:"+4d",risk:"medium"},{req:"SC Dir – LATAM",rec:"L. Souza",open:88,gap:"+18d",risk:"high"}];
+
+const mkHiring = (names) => [{n:"Nestlé",r:920},{n:"P&G",r:840},{n:"Unilever",r:730},{n:"PepsiCo",r:650},{n:"Kraft Heinz",r:490},{n:"Mondelēz",r:360},{n:"Conagra",r:250}].filter(x=>!names||names.length===0||names.includes(x.n)||true).slice(0,8);
+const mkCompHiring = (names) => { const vals=[920,840,730,650,490,360,250,180]; return names.slice(0,8).map((n,i)=>({n,r:vals[i]||200})); };
+const mkPeerScore = (company,peers) => { const all=[{n:company||"Your Co",v:76},...peers.map((n,i)=>({n,v:[94,89,85,80,74,67,61][i]||62}))]; return all.sort((a,b)=>b.v-a.v); };
+
+// ─── SHARED UI ────────────────────────────────────────────────────────────────
+const ax = {tick:{fill:C.muted,fontSize:11},axisLine:false,tickLine:false};
+
+const Tooltip2 = ({text}) => (
+  <div style={{position:'absolute',bottom:'calc(100% + 8px)',left:0,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:C.text,whiteSpace:'nowrap',zIndex:200,pointerEvents:'none',lineHeight:1.5,boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
+    {text.split('\n').map((l,i)=><div key={i} style={{color:i===0?C.muted:C.text}}>{l}</div>)}
+    <div style={{position:'absolute',bottom:-5,left:12,width:8,height:8,background:C.elevated,border:`1px solid ${C.border}`,transform:'rotate(45deg)',borderTop:'none',borderLeft:'none'}}/>
+  </div>
+);
+
+const KPI = ({label,value,sub,trend,vc,source}) => {
+  const [hov,setHov] = useState(false);
+  return (
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:'16px 18px',flex:1,minWidth:0}}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
+      <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{position:'relative',display:'inline-block'}}>
+        <div style={{fontSize:24,fontWeight:700,color:vc||C.text,lineHeight:1}}>{value}</div>
+        {source && hov && <Tooltip2 text={`Source\n${source}`}/>}
+      </div>
+      {sub && <div style={{fontSize:11,color:C.muted,marginTop:5}}>{sub}</div>}
+      {trend && <div style={{marginTop:6,fontSize:11,display:'flex',alignItems:'center',gap:4,color:trend.d==='up'?C.red:trend.d==='dn'?C.green:C.muted}}>
+        {trend.d==='up'?<TrendingUp size={11}/>:trend.d==='dn'?<TrendingDown size={11}/>:<Minus size={11}/>}
+        {trend.l}
+      </div>}
+    </div>
+  );
+};
+
+const KPIRow = ({items}) => <div style={{display:'flex',gap:12}}>{items.map((p,i)=><KPI key={i} {...p}/>)}</div>;
+
+const Card = ({title,sub,children}) => (
+  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:20}}>
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:13,fontWeight:600,color:C.text}}>{title}</div>
+      {sub&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{sub}</div>}
+    </div>
+    {children}
+  </div>
+);
+
+const Badge = ({c,children}) => (
+  <span style={{background:c==='red'?'rgba(242,108,108,0.15)':c==='amber'?'rgba(245,158,11,0.15)':'rgba(45,212,160,0.15)',
+    color:c==='red'?C.red:c==='amber'?C.amber:C.green,borderRadius:4,padding:'2px 8px',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>
+    {children}
+  </span>
+);
+
+const TH = ({cols}) => (
+  <thead><tr>{cols.map(h=>(
+    <th key={h} style={{padding:'4px 10px',fontWeight:500,fontSize:11,color:C.muted,textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>
+  ))}</tr></thead>
+);
+
+const CT = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return (
+    <div style={{background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px',fontSize:12}}>
+      <div style={{color:C.muted,marginBottom:4}}>{label}</div>
+      {payload.map((p,i)=>(
+        <div key={i} style={{display:'flex',gap:8}}><span style={{color:C.muted}}>{p.name}:</span><span style={{color:p.color||C.text,fontWeight:600}}>{p.value}</span></div>
+      ))}
+    </div>
+  );
+};
+
+// ─── SETUP ────────────────────────────────────────────────────────────────────
+const Setup = ({onSave}) => {
+  const [mode,setMode] = useState('benchmarked');
+  const [company,setCompany] = useState('');
+  const [industry,setIndustry] = useState('Consumer Packaged Goods');
+  const [inp,setInp] = useState('');
+  const [peers,setPeers] = useState([]);
+  const add = () => { const v=inp.trim(); if(v&&!peers.includes(v)&&peers.length<8){setPeers([...peers,v]);setInp('');} };
+  const canGo = mode==='market-only'||(company.trim()&&peers.length>=1);
+  return (
+    <div style={{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',padding:24,fontFamily:"'Inter',system-ui,sans-serif"}}>
+      <div style={{width:'100%',maxWidth:540}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:32}}>
+          <div style={{width:36,height:36,background:`linear-gradient(135deg,${C.accent},#7B5EA7)`,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,color:'#fff'}}>✦</div>
+          <div><div style={{fontWeight:700,fontSize:17,color:C.text}}>TalentIQ</div><div style={{fontSize:11,color:C.muted}}>Talent Intelligence Platform</div></div>
+        </div>
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:32}}>
+          <div style={{fontSize:18,fontWeight:700,color:C.text,marginBottom:4}}>Configure your workspace</div>
+          <div style={{fontSize:13,color:C.muted,marginBottom:24}}>Benchmark your company against competitors, or explore general market trends.</div>
+          <div style={{display:'flex',gap:10,marginBottom:24}}>
+            {[{id:'benchmarked',icon:'🏢',label:'Company + Benchmarks',desc:'Compare against specific competitors'},{id:'market-only',icon:'🌊',label:'Market Pulse Only',desc:'General trends, no company context'}].map(m=>(
+              <button key={m.id} onClick={()=>setMode(m.id)} style={{flex:1,background:mode===m.id?'rgba(74,127,229,0.12)':C.elevated,border:`1.5px solid ${mode===m.id?C.accent:C.border}`,borderRadius:10,padding:'12px 14px',cursor:'pointer',textAlign:'left'}}>
+                <div style={{fontSize:12,fontWeight:600,color:mode===m.id?C.accent:C.text}}>{m.icon} {m.label}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:3}}>{m.desc}</div>
+              </button>
+            ))}
+          </div>
+          {mode==='benchmarked'&&<div style={{marginBottom:18}}>
+            <label style={{fontSize:12,fontWeight:500,color:C.muted,display:'block',marginBottom:6}}>YOUR COMPANY</label>
+            <input value={company} onChange={e=>setCompany(e.target.value)} placeholder="e.g. Nestlé, P&G, Unilever…" style={{width:'100%',background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 14px',fontSize:13,color:C.text,outline:'none',boxSizing:'border-box'}}/>
+          </div>}
+          <div style={{marginBottom:18}}>
+            <label style={{fontSize:12,fontWeight:500,color:C.muted,display:'block',marginBottom:6}}>INDUSTRY</label>
+            <select value={industry} onChange={e=>setIndustry(e.target.value)} style={{width:'100%',background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'11px 14px',fontSize:13,color:C.text,outline:'none',appearance:'none',boxSizing:'border-box',cursor:'pointer'}}>
+              {INDUSTRIES.map(i=><option key={i} value={i} style={{background:C.elevated}}>{i}</option>)}
+            </select>
+          </div>
+          {mode==='benchmarked'&&<div style={{marginBottom:24}}>
+            <label style={{fontSize:12,fontWeight:500,color:C.muted,display:'block',marginBottom:6}}>BENCHMARK COMPETITORS <span style={{color:C.dim}}>(up to 8)</span></label>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="Type a company and press Enter or +" style={{flex:1,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px',fontSize:13,color:C.text,outline:'none'}}/>
+              <button onClick={add} style={{background:C.accent,border:'none',borderRadius:8,width:42,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Plus size={16} color="#fff"/></button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              {peers.map(p=>(
+                <span key={p} style={{background:C.dim,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 10px',fontSize:12,color:C.text,display:'flex',alignItems:'center',gap:6}}>
+                  {p}<button onClick={()=>setPeers(peers.filter(x=>x!==p))} style={{background:'none',border:'none',cursor:'pointer',padding:0,color:C.muted,display:'flex'}}><X size={11}/></button>
+                </span>
+              ))}
+              {peers.length===0&&<span style={{fontSize:11,color:C.muted}}>No competitors yet. Add 2–5 for meaningful benchmarking.</span>}
+            </div>
+          </div>}
+          <button disabled={!canGo} onClick={()=>onSave({company:company.trim()||null,industry,peers,mode})} style={{width:'100%',background:canGo?C.accent:C.dim,border:'none',borderRadius:9,padding:'13px',fontSize:13,fontWeight:600,color:canGo?'#fff':C.muted,cursor:canGo?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            Launch Dashboard <ChevronRight size={15}/>
+          </button>
+          {mode==='benchmarked'&&!canGo&&<div style={{fontSize:11,color:C.muted,marginTop:8,textAlign:'center'}}>Add your company name and at least 1 competitor to continue.</div>}
+        </div>
+        <div style={{fontSize:11,color:C.muted,textAlign:'center',marginTop:14}}>Sources: LinkedIn Talent Insights · layoffs.fyi · Radford/Mercer · WARN Act filings · Lightcast</div>
+      </div>
+    </div>
+  );
+};
+
+// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
+const SettingsModal = ({cfg,onSave,onClose}) => {
+  const [mode,setMode] = useState(cfg.mode);
+  const [company,setCompany] = useState(cfg.company||'');
+  const [industry,setIndustry] = useState(cfg.industry);
+  const [inp,setInp] = useState('');
+  const [peers,setPeers] = useState([...cfg.peers]);
+  const add = () => { const v=inp.trim(); if(v&&!peers.includes(v)&&peers.length<8){setPeers([...peers,v]);setInp('');} };
+  const canSave = mode==='market-only'||(company.trim()&&peers.length>=1);
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:24,fontFamily:"'Inter',system-ui,sans-serif"}}>
+      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:28,width:'100%',maxWidth:460,maxHeight:'90vh',overflowY:'auto'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.text}}>Dashboard Settings</div>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,display:'flex'}}><X size={18}/></button>
+        </div>
+        <div style={{display:'flex',gap:8,marginBottom:18}}>
+          {[{id:'benchmarked',label:'Company + Benchmarks'},{id:'market-only',label:'Market Pulse Only'}].map(m=>(
+            <button key={m.id} onClick={()=>setMode(m.id)} style={{flex:1,background:mode===m.id?'rgba(74,127,229,0.12)':C.elevated,border:`1.5px solid ${mode===m.id?C.accent:C.border}`,borderRadius:8,padding:'9px 12px',cursor:'pointer'}}>
+              <div style={{fontSize:12,fontWeight:600,color:mode===m.id?C.accent:C.text}}>{m.label}</div>
+            </button>
+          ))}
+        </div>
+        {mode==='benchmarked'&&<div style={{marginBottom:14}}>
+          <label style={{fontSize:11,color:C.muted,display:'block',marginBottom:5}}>YOUR COMPANY</label>
+          <input value={company} onChange={e=>setCompany(e.target.value)} style={{width:'100%',background:C.elevated,border:`1px solid ${C.border}`,borderRadius:7,padding:'9px 12px',fontSize:13,color:C.text,outline:'none',boxSizing:'border-box'}}/>
+        </div>}
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:11,color:C.muted,display:'block',marginBottom:5}}>INDUSTRY</label>
+          <select value={industry} onChange={e=>setIndustry(e.target.value)} style={{width:'100%',background:C.elevated,border:`1px solid ${C.border}`,borderRadius:7,padding:'9px 12px',fontSize:13,color:C.text,outline:'none',appearance:'none',boxSizing:'border-box',cursor:'pointer'}}>
+            {INDUSTRIES.map(i=><option key={i} value={i} style={{background:C.elevated}}>{i}</option>)}
+          </select>
+        </div>
+        {mode==='benchmarked'&&<div style={{marginBottom:20}}>
+          <label style={{fontSize:11,color:C.muted,display:'block',marginBottom:5}}>COMPETITORS</label>
+          <div style={{display:'flex',gap:8,marginBottom:8}}>
+            <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="Add competitor…" style={{flex:1,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:7,padding:'9px 12px',fontSize:13,color:C.text,outline:'none'}}/>
+            <button onClick={add} style={{background:C.accent,border:'none',borderRadius:7,width:38,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Plus size={14} color="#fff"/></button>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+            {peers.map(p=>(
+              <span key={p} style={{background:C.dim,border:`1px solid ${C.border}`,borderRadius:5,padding:'4px 9px',fontSize:12,color:C.text,display:'flex',alignItems:'center',gap:5}}>
+                {p}<button onClick={()=>setPeers(peers.filter(x=>x!==p))} style={{background:'none',border:'none',cursor:'pointer',padding:0,color:C.muted,display:'flex'}}><X size={10}/></button>
+              </span>
+            ))}
+          </div>
+        </div>}
+        <button disabled={!canSave} onClick={()=>{onSave({company:company.trim()||null,industry,peers,mode});onClose();}} style={{width:'100%',background:canSave?C.accent:C.dim,border:'none',borderRadius:8,padding:'11px',fontSize:13,fontWeight:600,color:canSave?'#fff':C.muted,cursor:canSave?'pointer':'default'}}>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
+const ViewPulse = ({cfg}) => {
+  const d = fallbackIndustry(cfg.industry);
+  const names = cfg.mode==='benchmarked' ? [cfg.company||'Your Co',...cfg.peers] : ["Nestlé","P&G","Unilever","PepsiCo","Kraft Heinz","Mondelēz","Conagra"];
+  const hiring = cfg.mode==='benchmarked' ? mkCompHiring(names) : mkHiring();
+  const myIdx = cfg.mode==='benchmarked' ? 0 : -1;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <KPIRow items={[
+        {label:`${cfg.industry} Layoffs (30d)`,value:d.kpi.layoffs,sub:"Major industry firms",trend:{d:'up',l:'+24% vs prior 30d'},vc:C.red,source:"layoffs.fyi + WARN Act public filings"},
+        {label:"Displaced Talent Available",value:d.kpi.displaced,sub:"Industry-relevant roles",trend:{d:'up',l:'45–60 day window'},vc:C.amber,source:"layoffs.fyi + Challenger, Gray & Christmas Report"},
+        {label:"Industry Hiring Index",value:d.kpi.hiringIdx,sub:"100 = Aug 2025 baseline",trend:{d:'dn',l:'Market cooling'},source:"LinkedIn Talent Insights — Composite Index"},
+        {label:"Market Tightness",value:d.kpi.tightness,sub:"Overall supply/demand balance",trend:{d:'flat',l:d.kpi.tightnessTrend},vc:d.kpi.tightnessC,source:"LinkedIn Talent Insights + Lightcast/Burning Glass"},
+      ]}/>
+      <div style={{display:'grid',gridTemplateColumns:'1.4fr 1fr',gap:16}}>
+        <Card title={cfg.mode==='benchmarked'?"Company Hiring Activity vs. Benchmarks":"Industry Hiring Activity"} sub="Active open roles — LinkedIn & public postings, Jan 2026">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={hiring} barSize={22}>
+              <XAxis dataKey="n" {...ax} tick={{...ax.tick,fontSize:10}}/><YAxis {...ax}/>
+              <Tooltip content={CT}/>
+              <Bar dataKey="r" radius={[4,4,0,0]} name="Open Reqs">
+                {hiring.map((_,i)=><Cell key={i} fill={i===myIdx?C.accent:C.dim}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          {cfg.mode==='benchmarked'&&<div style={{display:'flex',gap:14,marginTop:8,fontSize:11,color:C.muted}}>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,background:C.accent,borderRadius:2,display:'inline-block'}}/>{cfg.company||'Your Co'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,background:C.dim,borderRadius:2,display:'inline-block'}}/>Competitors</span>
+            <span style={{marginLeft:'auto',fontSize:10,color:C.muted}}>Source: LinkedIn Talent Insights</span>
+          </div>}
+          {cfg.mode!=='benchmarked'&&<div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: LinkedIn Talent Insights</div>}
+        </Card>
+        <Card title={`${cfg.industry} Hiring Trend (6mo)`} sub="Composite hiring index — 100 = Aug 2025 baseline">
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={d.hiringTrend}>
+              <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={C.accent} stopOpacity={0.25}/>
+                <stop offset="95%" stopColor={C.accent} stopOpacity={0}/>
+              </linearGradient></defs>
+              <XAxis dataKey="m" {...ax}/><YAxis {...ax} domain={[40,90]}/>
+              <Tooltip content={CT}/>
+              <Area type="monotone" dataKey="v" stroke={C.accent} fill="url(#ag)" strokeWidth={2} name="Hiring Index"/>
+            </AreaChart>
+          </ResponsiveContainer>
+          <div style={{fontSize:10,color:C.muted,marginTop:6,textAlign:'right'}}>Source: LinkedIn Talent Insights</div>
+        </Card>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr',gap:16}}>
+        <Card title="Displaced Talent by Function" sub="Last 60 days — industry layoffs">
+          <ResponsiveContainer width="100%" height={185}>
+            <BarChart data={d.dispFns} layout="vertical" barSize={13}>
+              <XAxis type="number" {...ax}/><YAxis dataKey="fn" type="category" {...ax} width={100}/>
+              <Tooltip content={CT}/>
+              <Bar dataKey="c" fill={C.purple} radius={[0,4,4,0]} name="Displaced"/>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{fontSize:10,color:C.muted,marginTop:6,textAlign:'right'}}>Source: layoffs.fyi + Challenger, Gray & Christmas</div>
+        </Card>
+        <Card title="Recent Layoffs Tracker" sub="Source: WARN Act, layoffs.fyi, public filings — last 60 days">
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+            <TH cols={["Company","Date","Headcount","Function","Status"]}/>
+            <tbody>{d.layoffList.map((r,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                <td style={{padding:'8px 10px',color:C.text,fontWeight:500}}>{r.co}</td>
+                <td style={{padding:'8px 10px',color:C.muted}}>{r.dt}</td>
+                <td style={{padding:'8px 10px',color:C.amber,fontWeight:600}}>{r.n}</td>
+                <td style={{padding:'8px 10px',color:C.muted}}>{r.fn}</td>
+                <td style={{padding:'8px 10px'}}><Badge c="green">Confirmed</Badge></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const ViewSupply = ({cfg}) => {
+  const d = fallbackIndustry(cfg.industry);
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <KPIRow items={[
+        {label:"Global Talent Pool",value:d.pool,sub:`In-scope ${cfg.industry} professionals`,trend:{d:'dn',l:'-2.1% YoY (EU contraction)'},source:"LinkedIn Talent Insights — Member Profile Data"},
+        {label:"Scarce Skills (< P30 supply)",value:d.scarce,sub:d.scarceTxt,trend:{d:'up',l:'Up from prior quarter'},vc:C.amber,source:"LinkedIn Talent Insights + Lightcast/Burning Glass"},
+        {label:"Industry Avg TTF",value:d.ttfAvg,sub:`vs ${d.ttfBench} industry benchmark`,trend:{d:'up',l:'Above benchmark'},vc:C.red,source:"iCIMS Hiring Benchmark Report + SHRM Research"},
+        {label:"Fastest Growing Region",value:"APAC +5.8%",sub:"India & Singapore leading",trend:{d:'dn',l:'Europe contracting –1.4%'},vc:C.green,source:"LinkedIn Talent Insights — Regional Talent Data"},
+      ]}/>
+      <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:16}}>
+        <Card title="Supply vs. Demand by Role Family" sub="Supply = normalized talent pool (0–100). Demand = req intensity + market demand. Gap > 30pts = scarcity.">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={d.sd} barGap={2}>
+              <XAxis dataKey="r" {...ax}/><YAxis {...ax} domain={[0,100]}/>
+              <Tooltip content={CT}/>
+              <Bar dataKey="s" fill={C.green} radius={[4,4,0,0]} name="Supply" barSize={13}/>
+              <Bar dataKey="d" fill={C.red} radius={[4,4,0,0]} name="Demand" barSize={13}/>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{display:'flex',gap:16,marginTop:8,fontSize:11,color:C.muted,flexWrap:'wrap'}}>
+            {[{l:"Supply",c:C.green},{l:"Demand",c:C.red}].map(({l,c})=>(
+              <span key={l} style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,background:c,borderRadius:2,display:'inline-block'}}/>{l}</span>
+            ))}
+            <span style={{color:C.amber}}>⚠ Gap &gt;30pts = scarcity</span>
+            <span style={{marginLeft:'auto',fontSize:10}}>Source: LinkedIn Talent Insights + Lightcast</span>
+          </div>
+        </Card>
+        <Card title="Skill Demand Trends (6mo)" sub="Rising demand index — Aug 2025 baseline">
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={d.skillTrend}>
+              <XAxis dataKey="m" {...ax}/><YAxis {...ax}/>
+              <Tooltip content={CT}/>
+              {d.skills.map(sk=><Line key={sk.k} type="monotone" dataKey={sk.k} stroke={sk.c} strokeWidth={2} dot={false} name={sk.label}/>)}
+            </LineChart>
+          </ResponsiveContainer>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10,marginTop:8,fontSize:11}}>
+            {d.skills.map(({k,label,c})=>(
+              <span key={k} style={{display:'flex',alignItems:'center',gap:4,color:C.muted}}><span style={{width:10,height:10,background:c,borderRadius:2,display:'inline-block'}}/>{label}</span>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:C.muted,marginTop:6,textAlign:'right'}}>Source: LinkedIn Talent Insights + Burning Glass</div>
+        </Card>
+      </div>
+      <Card title="Talent Pool by Region" sub="Estimated active industry professionals — LinkedIn member + labor market intelligence data">
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+          <TH cols={["Region","Est. Pool","YoY Growth","Key Hubs","Scarcity Risk"]}/>
+          <tbody>{staticRegions.map((r,i)=>(
+            <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+              <td style={{padding:'10px',color:C.text,fontWeight:500}}>{r.r}</td>
+              <td style={{padding:'10px',color:C.muted}}>{r.pool}</td>
+              <td style={{padding:'10px',color:r.gd>0?C.green:C.red,fontWeight:600}}>{r.g}</td>
+              <td style={{padding:'10px',color:C.muted}}>{r.hubs}</td>
+              <td style={{padding:'10px'}}><Badge c={r.risk==='high'?'red':r.risk==='medium'?'amber':'green'}>{r.risk[0].toUpperCase()+r.risk.slice(1)}</Badge></td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: LinkedIn Talent Insights — Regional Member Data</div>
+      </Card>
+    </div>
+  );
+};
+
+const ViewComp = ({cfg}) => {
+  const d = fallbackIndustry(cfg.industry);
+  const peerScores = cfg.mode==='benchmarked' ? mkPeerScore(cfg.company,cfg.peers) : [{n:"Firm A",v:94},{n:"Firm B",v:89},{n:"Firm C",v:85},{n:"Firm D",v:80},{n:"Firm E",v:73},{n:"Firm F",v:67}];
+  const myName = cfg.company||'Your Co';
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <KPIRow items={[
+        {label:"Roles Below Market P50",value:"4 of 7",sub:"Key benchmarked roles",trend:{d:'up',l:'Up from 2 last review'},vc:C.red,source:"Radford Global Compensation Survey + Mercer TRS"},
+        {label:"Avg Market Position",value:"P47",sub:"Below median across tracked roles",trend:{d:'up',l:'Was P52 in Q3 2025'},vc:C.amber,source:"Radford Global Compensation Survey"},
+        {label:"Est. Comp Gap vs. Peers",value:"–$12K",sub:"Avg shortfall vs peer set median",trend:{d:'up',l:'Widening since Q2 2025'},vc:C.red,source:"Radford + Mercer Industry Benchmarks"},
+        {label:"Comp Competitiveness Score",value:"76/100",sub:"vs peer group ranking",trend:{d:'up',l:'–5pts QoQ'},vc:C.amber,source:"Radford Global + Mercer TRS — Industry Cut"},
+      ]}/>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1.1fr',gap:16}}>
+        <Card title={cfg.mode==='benchmarked'?`Comp Score — ${myName} vs. Peers`:"Comp Competitiveness — Peer Comparison"} sub="Total comp score — Radford/Mercer benchmarks Jan 2026">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={peerScores} layout="vertical" barSize={20}>
+              <XAxis type="number" domain={[0,100]} {...ax}/><YAxis dataKey="n" type="category" {...ax} width={72}/>
+              <Tooltip content={CT}/>
+              <Bar dataKey="v" radius={[0,4,4,0]} name="Score">
+                {peerScores.map((x,i)=><Cell key={i} fill={cfg.mode==='benchmarked'&&x.n===myName?C.accent:C.dim}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: Radford Global Compensation Survey</div>
+        </Card>
+        <Card title="Market Band Positioning" sub="Your midpoint vs. P25–P90 range — USD annual base. Dot = your position.">
+          <div style={{display:'flex',flexDirection:'column',gap:15,marginTop:4}}>
+            {d.compBands.slice(0,5).map((r,i)=>{
+              const pct=((r.ours-r.p25)/(r.p90-r.p25))*100;
+              const below=r.ours<r.p50;
+              const mkt=`P${Math.round(((r.ours-r.p25)/(r.p90-r.p25))*65+25)}`;
+              return (
+                <div key={i}>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:4}}>
+                    <span style={{color:C.text}}>{r.role}</span>
+                    <span style={{color:below?C.red:C.green,fontWeight:600}}>{mkt}</span>
+                  </div>
+                  <div style={{position:'relative',height:8,background:C.elevated,borderRadius:4}}>
+                    <div style={{position:'absolute',left:`${((r.p50-r.p25)/(r.p90-r.p25))*100}%`,width:1.5,height:'100%',background:C.border}}/>
+                    <div style={{position:'absolute',left:`${Math.min(Math.max(pct,2),96)}%`,transform:'translateX(-50%)',width:12,height:12,background:below?C.red:C.green,borderRadius:'50%',top:-2,border:`2px solid ${C.elevated}`}}/>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:C.muted,marginTop:3}}>
+                    <span>P25 ${r.p25}K</span><span>P50 ${r.p50}K</span><span>P90 ${r.p90}K</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:10,color:C.muted,marginTop:10,textAlign:'right'}}>Source: Radford Global + Mercer TRS Industry Cut</div>
+        </Card>
+      </div>
+      <Card title="Full Compensation Band Table" sub="USD thousands annual base — industry benchmark cut, Jan 2026">
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+          <TH cols={["Role","P25","P50 Market","P75","P90","Our Midpoint","Position"]}/>
+          <tbody>{d.compBands.map((r,i)=>{
+            const below=r.ours<r.p50;
+            const mkt=`P${Math.round(((r.ours-r.p25)/(r.p90-r.p25))*65+25)}`;
+            return (
+              <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                <td style={{padding:'10px',color:C.text,fontWeight:500}}>{r.role}</td>
+                <td style={{padding:'10px',color:C.muted}}>${r.p25}K</td>
+                <td style={{padding:'10px',color:C.text,fontWeight:500}}>${r.p50}K</td>
+                <td style={{padding:'10px',color:C.muted}}>${r.p75}K</td>
+                <td style={{padding:'10px',color:C.muted}}>${r.p90}K</td>
+                <td style={{padding:'10px',color:below?C.red:C.green,fontWeight:700}}>${r.ours}K</td>
+                <td style={{padding:'10px'}}><Badge c={below?'red':'green'}>{mkt}</Badge></td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+        <div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: Radford Global Compensation Survey + Mercer TRS — Jan 2026</div>
+      </Card>
+    </div>
+  );
+};
+
+const ViewPipeline = ({cfg}) => {
+  const d = fallbackIndustry(cfg.industry);
+  const ttfData = [{m:"Aug",t:parseInt(d.ttfAvg)-4,b:parseInt(d.ttfBench)-3},{m:"Sep",t:parseInt(d.ttfAvg)-1,b:parseInt(d.ttfBench)-2},{m:"Oct",t:parseInt(d.ttfAvg)-5,b:parseInt(d.ttfBench)-2},{m:"Nov",t:parseInt(d.ttfAvg)+1,b:parseInt(d.ttfBench)-1},{m:"Dec",t:parseInt(d.ttfAvg)+3,b:parseInt(d.ttfBench)},{m:"Jan",t:parseInt(d.ttfAvg),b:parseInt(d.ttfBench)}];
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <KPIRow items={[
+        {label:"Active Requisitions",value:"118",sub:"Across 5 regions",trend:{d:'up',l:'+14 vs last month'},source:"Your ATS (internal data)"},
+        {label:"Avg Time to Fill",value:d.ttfAvg,sub:`Target: ${d.ttfBench} (gap: +${parseInt(d.ttfAvg)-parseInt(d.ttfBench)}d)`,trend:{d:'up',l:'Above target'},vc:C.amber,source:"Your ATS (internal) + iCIMS Benchmark Report"},
+        {label:"Offer Accept Rate",value:"76%",sub:"Target: 85% (–9pt gap)",trend:{d:'up',l:'–9pts behind target'},vc:C.red,source:"Your ATS (internal data)"},
+        {label:"At-Risk Requisitions",value:"5",sub:"10+ days over TTF target",trend:{d:'up',l:'Up from 2 last week'},vc:C.red,source:"Your ATS — TTF threshold alert logic"},
+      ]}/>
+      <div style={{display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:16}}>
+        <Card title="Funnel Conversion" sub="All active reqs — rolling 30 days">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={staticFunnel} barSize={38}>
+              <XAxis dataKey="s" {...ax}/><YAxis {...ax}/>
+              <Tooltip content={CT}/>
+              <Bar dataKey="c" radius={[4,4,0,0]} name="Candidates">
+                {staticFunnel.map((_,i)=><Cell key={i} fill={`rgba(74,127,229,${1-i*0.13})`}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{display:'flex',gap:20,marginTop:8,fontSize:11,color:C.muted,flexWrap:'wrap'}}>
+            <span>Screen rate: <strong style={{color:C.text}}>45%</strong></span>
+            <span>Offer→Hire: <strong style={{color:C.text}}>82%</strong></span>
+            <span>Overall conv: <strong style={{color:C.text}}>3.3%</strong></span>
+            <span style={{marginLeft:'auto',fontSize:10}}>Source: Your ATS (internal)</span>
+          </div>
+        </Card>
+        <Card title="Time to Fill vs. Industry Benchmark" sub="Days — our avg vs. industry median">
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={ttfData}>
+              <XAxis dataKey="m" {...ax}/><YAxis {...ax} domain={[35,80]}/>
+              <Tooltip content={CT}/>
+              <Line type="monotone" dataKey="t" stroke={C.amber} strokeWidth={2} dot={false} name="Our TTF"/>
+              <Line type="monotone" dataKey="b" stroke={C.muted} strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="Benchmark"/>
+            </LineChart>
+          </ResponsiveContainer>
+          <div style={{display:'flex',gap:16,marginTop:8,fontSize:11,color:C.muted,flexWrap:'wrap'}}>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:16,height:2,background:C.amber,display:'inline-block'}}/>Our TTF</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:16,height:2,background:C.muted,display:'inline-block'}}/>Benchmark</span>
+            <span style={{marginLeft:'auto',fontSize:10}}>Source: iCIMS + SHRM</span>
+          </div>
+        </Card>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1.5fr',gap:16}}>
+        <Card title="Source Performance" sub="30-day hires · OAR = offer accept rate · 30d ret. = 30-day retention">
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+            <TH cols={["Source","Hires","OAR","30d Ret."]}/>
+            <tbody>{staticSources.map((r,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                <td style={{padding:'9px 10px',color:C.text}}>{r.s}</td>
+                <td style={{padding:'9px 10px',color:C.muted}}>{r.h}</td>
+                <td style={{padding:'9px 10px',color:r.oar>=85?C.green:r.oar>=75?C.amber:C.red,fontWeight:600}}>{r.oar}%</td>
+                <td style={{padding:'9px 10px',color:r.ret>=90?C.green:r.ret>=80?C.amber:C.red,fontWeight:600}}>{r.ret}%</td>
+              </tr>
+            ))}</tbody>
+          </table>
+          <div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: Your ATS (internal data)</div>
+        </Card>
+        <Card title="At-Risk Requisitions" sub="Reqs 4+ days over TTF target — action required">
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+            <TH cols={["Requisition","Recruiter","Days Open","vs Target","Risk"]}/>
+            <tbody>{staticAtRisk.map((r,i)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
+                <td style={{padding:'9px 10px',color:C.text,fontWeight:500}}>{r.req}</td>
+                <td style={{padding:'9px 10px',color:C.muted}}>{r.rec}</td>
+                <td style={{padding:'9px 10px',color:C.amber}}>{r.open}d</td>
+                <td style={{padding:'9px 10px',color:C.red,fontWeight:600}}>{r.gap}</td>
+                <td style={{padding:'9px 10px'}}><Badge c={r.risk==='high'?'red':'amber'}>{r.risk[0].toUpperCase()+r.risk.slice(1)}</Badge></td>
+              </tr>
+            ))}</tbody>
+          </table>
+          <div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'right'}}>Source: Your ATS (internal data)</div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const ViewExec = ({cfg}) => {
+  const d = fallbackIndustry(cfg.industry);
+  const label = cfg.mode==='benchmarked'&&cfg.company ? cfg.company : cfg.industry;
+  const actions = [
+    {p:"P1",a:`Launch proactive sourcing targeting displaced ${cfg.industry} talent from recent layoffs`,o:"TA Director",due:"Feb 21"},
+    {p:"P1",a:"Escalate comp review for roles below P50 — build CHRO business case with band data",o:"TA Director",due:"Feb 24"},
+    {p:"P2",a:`Review top at-risk reqs (${d.ttfAvg} avg vs ${d.ttfBench} target) — agency or strategy pivot`,o:"TA Manager",due:"Feb 25"},
+    {p:"P2",a:"Build APAC passive pipeline for scarce role families for H2 2026 plan",o:"Sourcer",due:"Mar 1"},
+    {p:"P3",a:"Audit EVP messaging — OAR gap widening, referrals outperforming all other channels",o:"TA Manager",due:"Mar 7"}
+  ];
+  const scorecard = [
+    {m:"Monthly Hires vs. Target",v:"111% (61 of 55)",s:"green",src:"Your ATS (internal)"},
+    {m:"Avg Time to Fill",v:`${d.ttfAvg} (target: ${d.ttfBench})`,s:"red",src:"Your ATS + iCIMS Benchmark"},
+    {m:"Offer Accept Rate",v:"76% (target: 85%)",s:"red",src:"Your ATS (internal)"},
+    {m:"Roles Below Market P50",v:"4 of 7",s:"red",src:"Radford/Mercer Survey"},
+    {m:"At-Risk Reqs",v:"5 active",s:"amber",src:"Your ATS (internal)"},
+    {m:"Industry Hiring Index",v:`${d.kpi.hiringIdx} — cooling`,s:"green",src:"LinkedIn Talent Insights"},
+    {m:"Displaced Talent Window",v:`${d.kpi.displaced} available`,s:"green",src:"layoffs.fyi + Challenger Report"}
+  ];
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <KPIRow items={[
+        {label:"Global Hires (MTD)",value:"61",sub:"vs 55 target — 111%",trend:{d:'dn',l:'On track'},vc:C.green,source:"Your ATS (internal data)"},
+        {label:"Avg Time to Fill",value:d.ttfAvg,sub:`+${parseInt(d.ttfAvg)-parseInt(d.ttfBench)}d over ${d.ttfBench} target`,trend:{d:'up',l:'Above target'},vc:C.amber,source:"Your ATS (internal) + iCIMS Benchmark Report"},
+        {label:"Offer Accept Rate",value:"76%",sub:"Target 85% — gap: –9pts",trend:{d:'up',l:'Comp gap cited in exits'},vc:C.red,source:"Your ATS (internal data)"},
+        {label:"Market Tightness",value:d.kpi.tightness,sub:d.scarceTxt.split(',').slice(0,2).join(', ')+" tight",trend:{d:'flat',l:d.kpi.tightnessTrend},vc:d.kpi.tightnessC,source:"LinkedIn Talent Insights + Lightcast"},
+      ]}/>
+      <Card title={`AI Market Summary — ${label} · Week of Feb 17, 2026`}>
+        <div style={{fontSize:11,color:C.muted,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:6,padding:'3px 10px',display:'inline-block',marginBottom:14}}>Auto-generated · Updated 6h ago</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          {d.execInsights.map((item,i)=>(
+            <div key={i} style={{background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:16}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <span style={{fontSize:16}}>{item.icon}</span>
+                <span style={{fontSize:12,fontWeight:600,color:item.col}}>{item.title}</span>
+              </div>
+              <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}>{item.body}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <Card title="Top Actions This Week" sub="Priority items for TA leadership">
+          {actions.map((a,i)=>(
+            <div key={i} style={{display:'flex',gap:10,padding:'10px 0',borderBottom:`1px solid ${C.border}`,alignItems:'flex-start'}}>
+              <Badge c={a.p==='P1'?'red':a.p==='P2'?'amber':'green'}>{a.p}</Badge>
+              <div>
+                <div style={{fontSize:12,color:C.text,lineHeight:1.55}}>{a.a}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:3}}>{a.o} · Due {a.due}</div>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card title="Scorecard" sub="Key metrics vs. targets — current week">
+          {scorecard.map((r,i)=>{
+            const [hov,setHov] = useState(false);
+            return (
+              <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:`1px solid ${C.border}`,fontSize:12,position:'relative'}}
+                onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
+                <span style={{color:C.muted,display:'flex',alignItems:'center',gap:5}}>
+                  {r.m}
+                  <Info size={10} color={C.dim}/>
+                  {hov&&<div style={{position:'absolute',bottom:'calc(100% + 4px)',left:0,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:7,padding:'6px 10px',fontSize:11,color:C.muted,whiteSpace:'nowrap',zIndex:50}}>
+                    Source: <span style={{color:C.text}}>{r.src}</span>
+                  </div>}
+                </span>
+                <span style={{color:r.s==='green'?C.green:r.s==='red'?C.red:C.amber,fontWeight:600}}>{r.v}</span>
+              </div>
+            );
+          })}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+const TABS = [{id:'pulse',label:'Market Pulse',icon:'🌊'},{id:'supply',label:'Talent Supply',icon:'👥'},{id:'comp',label:'Comp Intelligence',icon:'💰'},{id:'pipeline',label:'Pipeline Health',icon:'📊'},{id:'exec',label:'Executive View',icon:'⚡'}];
+
+export default function App() {
+  const [cfg,setCfg] = useState(null);
+  const [tab,setTab] = useState('pulse');
+  const [q,setQ] = useState('');
+  const [resp,setResp] = useState('');
+  const [loading,setLoading] = useState(false);
+  const [showSettings,setShowSettings] = useState(false);
+
+  const ask = async () => {
+    if(!q.trim()) return;
+    setLoading(true); setResp('');
+    const d = fallbackIndustry(cfg.industry);
+    const ctx = cfg.mode==='benchmarked'&&cfg.company ? `Company: ${cfg.company}. Competitors: ${cfg.peers.join(', ')}.` : `General ${cfg.industry} market pulse.`;
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:1000,
+        system:`You are a talent intelligence analyst. ${ctx} Industry: ${cfg.industry}.
+Market data: Layoffs (30d): ${d.kpi.layoffs} at major firms. Displaced: ${d.kpi.displaced}. Hiring index: ${d.kpi.hiringIdx}. Scarce roles: ${d.scarceTxt}.
+Comp: 4 of 7 roles below P50. Avg market position P47. Comp score 76/100.
+Pipeline: 118 reqs. TTF ${d.ttfAvg} vs ${d.ttfBench} target. OAR 76% vs 85%.
+Respond: 2-3 sentences sharp insight + exactly 2 bullet recommended actions. No preamble.`,
+        messages:[{role:"user",content:q}]
+      })});
+      const data = await r.json();
+      setResp(data.content?.map(b=>b.text||'').join(' ')||'No response received.');
+    } catch(e){ setResp('Connection error. Please try again.'); }
+    setLoading(false);
+  };
+
+  if(!cfg) return <Setup onSave={setCfg}/>;
+  const headerLabel = cfg.mode==='benchmarked'&&cfg.company ? cfg.company : cfg.industry;
+
+  const views = {
+    pulse:<ViewPulse cfg={cfg}/>,
+    supply:<ViewSupply cfg={cfg}/>,
+    comp:<ViewComp cfg={cfg}/>,
+    pipeline:<ViewPipeline cfg={cfg}/>,
+    exec:<ViewExec cfg={cfg}/>
+  };
+
+  return (
+    <div style={{background:C.bg,minHeight:'100vh',fontFamily:"'Inter',system-ui,sans-serif",color:C.text}}>
+      {showSettings&&<SettingsModal cfg={cfg} onSave={setCfg} onClose={()=>setShowSettings(false)}/>}
+      <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:'0 24px',height:56,display:'flex',alignItems:'center',gap:14,position:'sticky',top:0,zIndex:100}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+          <div style={{width:28,height:28,background:`linear-gradient(135deg,${C.accent},#7B5EA7)`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'#fff'}}>✦</div>
+          <span style={{fontWeight:700,fontSize:14}}>TalentIQ</span>
+          <div onClick={()=>setShowSettings(true)} style={{display:'flex',alignItems:'center',gap:6,background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'3px 10px 3px 8px',cursor:'pointer'}}>
+            <Building2 size={11} color={C.muted}/>
+            <span style={{fontSize:11,color:C.text,fontWeight:500,maxWidth:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</span>
+            <span style={{fontSize:10,color:C.muted,background:C.dim,borderRadius:4,padding:'1px 6px',marginLeft:2}}>{cfg.mode==='benchmarked'?`+${cfg.peers.length} peers`:'Market Only'}</span>
+          </div>
+        </div>
+        <div style={{flex:1,maxWidth:520,display:'flex',gap:8}}>
+          <div style={{flex:1,display:'flex',alignItems:'center',background:C.elevated,border:`1px solid ${C.border}`,borderRadius:8,padding:'0 12px',gap:8}}>
+            <Search size={13} color={C.muted}/>
+            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&ask()}
+              placeholder={cfg.mode==='benchmarked'?`Ask about ${cfg.company||'your company'}, competitors, or market trends…`:"Ask about market trends, talent supply, comp benchmarks…"}
+              style={{flex:1,background:'transparent',border:'none',outline:'none',fontSize:12,color:C.text,padding:'9px 0'}}/>
+          </div>
+          <button onClick={ask} disabled={loading} style={{background:loading?C.dim:C.accent,border:'none',borderRadius:8,padding:'0 18px',fontSize:12,fontWeight:600,color:'#fff',cursor:loading?'default':'pointer',flexShrink:0}}>
+            {loading?'…':'Ask AI'}
+          </button>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:11,color:C.muted}}>Updated <span style={{color:C.text}}>Feb 17, 2026</span></span>
+          <button onClick={()=>setShowSettings(true)} style={{background:'none',border:`1px solid ${C.border}`,borderRadius:7,padding:'5px 8px',cursor:'pointer',display:'flex',alignItems:'center',gap:5,color:C.muted}}>
+            <Settings size={13}/><span style={{fontSize:11}}>Settings</span>
+          </button>
+          <Bell size={15} color={C.muted} style={{cursor:'pointer'}}/>
+        </div>
+      </div>
+      {(resp||loading)&&(
+        <div style={{background:'rgba(74,127,229,0.07)',borderBottom:`1px solid rgba(74,127,229,0.2)`,padding:'12px 24px',display:'flex',gap:12,alignItems:'flex-start'}}>
+          <div style={{width:20,height:20,background:C.accent,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,flexShrink:0,marginTop:1,color:'#fff'}}>✦</div>
+          <div style={{fontSize:13,color:C.text,lineHeight:1.65,flex:1}}>{loading?<span style={{color:C.muted}}>Analyzing market data…</span>:resp}</div>
+          {resp&&<button onClick={()=>{setResp('');setQ('');}} style={{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,lineHeight:1,padding:'0 4px',flexShrink:0}}>×</button>}
+        </div>
+      )}
+      <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:'0 24px',display:'flex'}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{background:'none',border:'none',padding:'13px 18px',fontSize:13,fontWeight:500,cursor:'pointer',color:tab===t.id?C.accent:C.muted,borderBottom:tab===t.id?`2px solid ${C.accent}`:'2px solid transparent',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+            <span>{t.icon}</span>{t.label}
+          </button>
+        ))}
+      </div>
+      <div style={{padding:20}}>{views[tab]}</div>
+    </div>
+  );
+}
