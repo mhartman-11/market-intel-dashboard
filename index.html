@@ -537,7 +537,248 @@ function renderPulse(){
   </div>`;
   mkC('ch-hiring',{type:'bar',data:{labels:hd.map(x=>x.n),datasets:[{data:hd.map(x=>x.v),backgroundColor:hcol,borderRadius:4,label:'Open Reqs'}]},options:CDO});
   mkC('ch-trend',{type:'line',data:{labels:d.hiringTrend.map(x=>x.m),datasets:[{data:d.hiringTrend.map(x=>x.v),borderColor:'#4A7FE5',borderWidth:2,pointRadius:0,fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(74,127,229,0.25)');g.addColorStop(1,'rgba(74,127,229,0)');return g;},label:'Hiring Index'}]},options:{...CDO,scales:{...CDO.scales,y:{...CDO.scales.y,min:40,max:90}}}});
-  mkC('ch-disp',{type:'bar',data:{labels:d.dispFns.map(x=>x.fn),datasets:[{data:d.dispFns.map(x=>x.c),backgroundColor:'#A78BFA',borderRadius:4,label:'Displaced'}]},options:{...CDO,indexAxis:'y'}});
+  mkC('ch-disp',{type:'bar',data:{labels:d.dispFns.map(x=>x.fn),datasets:[{data:d.dispFns.map(x=>x.c),backgroundColor:'#A78BFA',borderRadius:4,label:'Displaced'}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:CDO.plugins.tooltip},scales:{x:{grid:{color:'rgba(26,37,64,0.5)'},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}},y:{grid:{display:false},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}}}}});
 }
 
-// ══════
+// ══════════════════════════════════════════
+// SUPPLY
+// ══════════════════════════════════════════
+function renderSupply(){
+  const d=getD();
+  document.getElementById('tab-content').innerHTML=`<div class="flex-col">
+    <div class="kpi-row">
+      ${kC('Global Talent Pool',d.pool,`In-scope ${cfg.industry} professionals`,{d:'dn',l:'-2.1% YoY (EU contraction)'},'','LinkedIn Talent Insights')}
+      ${kC('Scarce Skills (< P30 supply)',d.scarce,d.scarceTxt,{d:'up',l:'Up from prior quarter'},'var(--amber)','LinkedIn Talent Insights + Lightcast')}
+      ${kC('Industry Avg TTF',d.ttfAvg,`vs ${d.ttfBench} benchmark`,{d:'up',l:'Above benchmark'},'var(--red)','iCIMS Benchmark + SHRM Research')}
+      ${kC('Fastest Growing Region','APAC +5.8%','India & Singapore leading',{d:'dn',l:'Europe contracting –1.4%'},'var(--green)','LinkedIn Talent Insights — Regional Data')}
+    </div>
+    <div class="grid-15">
+      <div class="card">
+        <div class="card-title">Supply vs. Demand by Role Family</div>
+        <div class="card-sub">Supply = normalized talent pool (0–100). Demand = req intensity. Gap &gt;30pts = scarcity.</div>
+        <div class="chart-wrap-220"><canvas id="ch-sd"></canvas></div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:var(--green)"></span>Supply</span>
+          <span><span class="legend-dot" style="background:var(--red)"></span>Demand</span>
+          <span style="color:var(--amber)">⚠ Gap &gt;30pts = scarcity</span>
+          <span style="margin-left:auto;font-size:10px">Source: LinkedIn Talent Insights + Lightcast</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Skill Demand Trends (6mo)</div>
+        <div class="card-sub">Rising demand index — Aug 2025 baseline</div>
+        <div class="chart-wrap-220"><canvas id="ch-skills"></canvas></div>
+        <div class="legend">${d.skills.map(s=>`<span><span class="legend-dot" style="background:${s.color}"></span>${s.label}</span>`).join('')}</div>
+        ${sn('LinkedIn Talent Insights + Burning Glass')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Talent Pool by Region</div>
+      <div class="card-sub">Estimated active industry professionals — LinkedIn member + labor market intelligence data</div>
+      <table><thead><tr><th>Region</th><th>Est. Pool</th><th>YoY Growth</th><th>Key Hubs</th><th>Scarcity Risk</th></tr></thead><tbody>
+      ${staticRegions.map(r=>`<tr><td style="color:var(--text);font-weight:500">${r.r}</td><td style="color:var(--muted)">${r.pool}</td><td style="color:${r.gd>0?'var(--green)':'var(--red)'};font-weight:600">${r.g}</td><td style="color:var(--muted)">${r.hubs}</td><td><span class="badge ${bc(r.risk)}">${cap(r.risk)}</span></td></tr>`).join('')}
+      </tbody></table>
+      ${sn('LinkedIn Talent Insights — Regional Member Data')}
+    </div>
+  </div>`;
+  mkC('ch-sd',{type:'bar',data:{labels:d.sd.map(x=>x.r),datasets:[{label:'Supply',data:d.sd.map(x=>x.s),backgroundColor:'#2DD4A0',borderRadius:4},{label:'Demand',data:d.sd.map(x=>x.d),backgroundColor:'#F26C6C',borderRadius:4}]},options:{...CDO,plugins:{...CDO.plugins,tooltip:{...CDO.plugins.tooltip,mode:'index',intersect:false}},scales:{...CDO.scales,y:{...CDO.scales.y,max:100}}}});
+  mkC('ch-skills',{type:'line',data:{labels:d.skillTrend.map(x=>x.m),datasets:d.skills.map(s=>({label:s.label,data:d.skillTrend.map(x=>x[s.k]),borderColor:s.color,borderWidth:2,pointRadius:0,tension:0.3}))},options:{...CDO,plugins:{...CDO.plugins,tooltip:{...CDO.plugins.tooltip,mode:'index',intersect:false}}}});
+}
+
+// ══════════════════════════════════════════
+// COMP
+// ══════════════════════════════════════════
+function renderComp(){
+  const d=getD();
+  const myN=cfg.company||'Your Co';
+  const names=cfg.mode==='benchmarked'?[myN,...cfg.peers]:['Firm A','Firm B','Firm C','Firm D','Firm E','Firm F'];
+  const sv=[76,94,89,85,80,74,67,61];
+  const ps=names.slice(0,8).map((n,i)=>({n,v:sv[i]||62})).sort((a,b)=>b.v-a.v);
+  const pcol=ps.map(x=>cfg.mode==='benchmarked'&&x.n===myN?'#4A7FE5':'#1E3050');
+  const bandsHtml=d.compBands.slice(0,5).map(r=>{
+    const pct=Math.min(Math.max(((r.ours-r.p25)/(r.p90-r.p25))*100,2),96);
+    const mp=((r.p50-r.p25)/(r.p90-r.p25))*100;
+    const mkt=`P${Math.round(((r.ours-r.p25)/(r.p90-r.p25))*65+25)}`;
+    const below=r.ours<r.p50;
+    return `<div class="comp-band-item">
+      <div class="comp-band-header"><span style="color:var(--text)">${r.role}</span><span style="color:${below?'var(--red)':'var(--green)'};font-weight:600">${mkt}</span></div>
+      <div class="comp-band-bar"><div class="comp-band-median" style="left:${mp}%"></div><div class="comp-band-dot" style="left:${pct}%;background:${below?'var(--red)':'var(--green)'}"></div></div>
+      <div class="comp-band-ticks"><span>P25 $${r.p25}K</span><span>P50 $${r.p50}K</span><span>P90 $${r.p90}K</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('tab-content').innerHTML=`<div class="flex-col">
+    <div class="kpi-row">
+      ${kC('Roles Below Market P50','4 of 7','Key benchmarked roles',{d:'up',l:'Up from 2 last review'},'var(--red)','Radford Global + Mercer TRS')}
+      ${kC('Avg Market Position','P47','Below median across tracked roles',{d:'up',l:'Was P52 in Q3 2025'},'var(--amber)','Radford Global Compensation Survey')}
+      ${kC('Est. Comp Gap vs. Peers','–$12K','Avg shortfall vs peer set median',{d:'up',l:'Widening since Q2 2025'},'var(--red)','Radford + Mercer Industry Benchmarks')}
+      ${kC('Comp Competitiveness Score','76/100','vs peer group ranking',{d:'up',l:'–5pts QoQ'},'var(--amber)','Radford Global + Mercer TRS')}
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">${cfg.mode==='benchmarked'?`Comp Score — ${myN} vs. Peers`:'Comp Competitiveness — Peer Comparison'}</div>
+        <div class="card-sub">Total comp score — Radford/Mercer benchmarks Jan 2026</div>
+        <div class="chart-wrap-220"><canvas id="ch-ps"></canvas></div>
+        ${sn('Radford Global Compensation Survey')}
+      </div>
+      <div class="card">
+        <div class="card-title">Market Band Positioning</div>
+        <div class="card-sub">Your midpoint vs. P25–P90 range. Dot = your position.</div>
+        <div class="comp-band-wrap">${bandsHtml}</div>
+        ${sn('Radford Global + Mercer TRS Industry Cut')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Full Compensation Band Table</div>
+      <div class="card-sub">USD thousands annual base — industry benchmark cut, Jan 2026</div>
+      <table><thead><tr><th>Role</th><th>P25</th><th>P50 Market</th><th>P75</th><th>P90</th><th>Our Midpoint</th><th>Position</th></tr></thead><tbody>
+      ${d.compBands.map(r=>{const below=r.ours<r.p50;const mkt=`P${Math.round(((r.ours-r.p25)/(r.p90-r.p25))*65+25)}`;return`<tr><td style="color:var(--text);font-weight:500">${r.role}</td><td style="color:var(--muted)">$${r.p25}K</td><td style="color:var(--text);font-weight:500">$${r.p50}K</td><td style="color:var(--muted)">$${r.p75}K</td><td style="color:var(--muted)">$${r.p90}K</td><td style="color:${below?'var(--red)':'var(--green)'};font-weight:700">$${r.ours}K</td><td><span class="badge ${below?'badge-red':'badge-green'}">${mkt}</span></td></tr>`;}).join('')}
+      </tbody></table>
+      ${sn('Radford Global Compensation Survey + Mercer TRS — Jan 2026')}
+    </div>
+  </div>`;
+  mkC('ch-ps',{type:'bar',data:{labels:ps.map(x=>x.n),datasets:[{data:ps.map(x=>x.v),backgroundColor:pcol,borderRadius:4,label:'Score'}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:CDO.plugins.tooltip},scales:{x:{min:0,max:100,grid:{color:'rgba(26,37,64,0.5)'},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}},y:{grid:{display:false},ticks:{color:'#5E7A9A',font:{size:11}},border:{display:false}}}}});
+}
+
+// ══════════════════════════════════════════
+// PIPELINE
+// ══════════════════════════════════════════
+function renderPipeline(){
+  const d=getD();
+  const tN=parseInt(d.ttfAvg),tB=parseInt(d.ttfBench);
+  const td=[{m:"Aug",t:tN-4,b:tB-3},{m:"Sep",t:tN-1,b:tB-2},{m:"Oct",t:tN-5,b:tB-2},{m:"Nov",t:tN+1,b:tB-1},{m:"Dec",t:tN+3,b:tB},{m:"Jan",t:tN,b:tB}];
+  const atRisk=[{req:"Sr. Brand Mgr – NA",rec:"J. Torres",open:72,gap:"+12d",risk:"high"},{req:"RGM Lead – Europe",rec:"S. Patel",open:65,gap:"+10d",risk:"high"},{req:"Data Scientist – APAC",rec:"M. Chen",open:58,gap:"+8d",risk:"medium"},{req:"Food Scientist – NA",rec:"K. Adams",open:49,gap:"+4d",risk:"medium"},{req:"SC Dir – LATAM",rec:"L. Souza",open:88,gap:"+18d",risk:"high"}];
+  document.getElementById('tab-content').innerHTML=`<div class="flex-col">
+    <div class="kpi-row">
+      ${kC('Active Requisitions','118','Across 5 regions',{d:'up',l:'+14 vs last month'},'','Your ATS (internal data)')}
+      ${kC('Avg Time to Fill',d.ttfAvg,`Target: ${d.ttfBench} (gap: +${tN-tB}d)`,{d:'up',l:'Above target'},'var(--amber)','Your ATS + iCIMS Benchmark')}
+      ${kC('Offer Accept Rate','76%','Target: 85% (–9pt gap)',{d:'up',l:'–9pts behind target'},'var(--red)','Your ATS (internal data)')}
+      ${kC('At-Risk Requisitions','5','10+ days over TTF target',{d:'up',l:'Up from 2 last week'},'var(--red)','Your ATS — TTF threshold alerts')}
+    </div>
+    <div class="grid-12">
+      <div class="card">
+        <div class="card-title">Funnel Conversion</div>
+        <div class="card-sub">All active reqs — rolling 30 days</div>
+        <div class="chart-wrap"><canvas id="ch-funnel"></canvas></div>
+        <div class="legend">
+          <span>Screen rate: <strong style="color:var(--text)">45%</strong></span>
+          <span>Offer→Hire: <strong style="color:var(--text)">82%</strong></span>
+          <span>Conv: <strong style="color:var(--text)">3.3%</strong></span>
+          <span style="margin-left:auto;font-size:10px">Source: Your ATS (internal)</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Time to Fill vs. Industry Benchmark</div>
+        <div class="card-sub">Days — our avg vs. industry median</div>
+        <div class="chart-wrap"><canvas id="ch-ttf"></canvas></div>
+        <div class="legend">
+          <span><span class="legend-line" style="background:var(--amber)"></span>Our TTF</span>
+          <span><span class="legend-line" style="background:var(--muted)"></span>Benchmark</span>
+          <span style="margin-left:auto;font-size:10px">Source: iCIMS + SHRM</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid-41">
+      <div class="card">
+        <div class="card-title">Source Performance</div>
+        <div class="card-sub">30-day hires · OAR = offer accept rate · Ret. = 30-day retention</div>
+        <table><thead><tr><th>Source</th><th>Hires</th><th>OAR</th><th>30d Ret.</th></tr></thead><tbody>
+        ${staticSources.map(r=>`<tr><td style="color:var(--text)">${r.s}</td><td style="color:var(--muted)">${r.h}</td><td style="color:${r.oar>=85?'var(--green)':r.oar>=75?'var(--amber)':'var(--red)'};font-weight:600">${r.oar}%</td><td style="color:${r.ret>=90?'var(--green)':r.ret>=80?'var(--amber)':'var(--red)'};font-weight:600">${r.ret}%</td></tr>`).join('')}
+        </tbody></table>
+        ${sn('Your ATS (internal data)')}
+      </div>
+      <div class="card">
+        <div class="card-title">At-Risk Requisitions</div>
+        <div class="card-sub">Reqs 4+ days over TTF target — action required</div>
+        <table><thead><tr><th>Requisition</th><th>Recruiter</th><th>Days Open</th><th>vs Target</th><th>Risk</th></tr></thead><tbody>
+        ${atRisk.map(r=>`<tr><td style="color:var(--text);font-weight:500">${r.req}</td><td style="color:var(--muted)">${r.rec}</td><td style="color:var(--amber)">${r.open}d</td><td style="color:var(--red);font-weight:600">${r.gap}</td><td><span class="badge ${bc(r.risk)}">${cap(r.risk)}</span></td></tr>`).join('')}
+        </tbody></table>
+        ${sn('Your ATS (internal data)')}
+      </div>
+    </div>
+  </div>`;
+  const fcol=staticFunnel.map((_,i)=>`rgba(74,127,229,${1-i*0.13})`);
+  mkC('ch-funnel',{type:'bar',data:{labels:staticFunnel.map(x=>x.s),datasets:[{data:staticFunnel.map(x=>x.c),backgroundColor:fcol,borderRadius:4,label:'Candidates'}]},options:CDO});
+  mkC('ch-ttf',{type:'line',data:{labels:td.map(x=>x.m),datasets:[{label:'Our TTF',data:td.map(x=>x.t),borderColor:'#F59E0B',borderWidth:2,pointRadius:0,tension:0.3},{label:'Benchmark',data:td.map(x=>x.b),borderColor:'#5E7A9A',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0.3}]},options:{...CDO,plugins:{...CDO.plugins,tooltip:{...CDO.plugins.tooltip,mode:'index',intersect:false}},scales:{...CDO.scales,y:{...CDO.scales.y,min:35,max:80}}}});
+}
+
+// ══════════════════════════════════════════
+// EXEC
+// ══════════════════════════════════════════
+function renderExec(){
+  const d=getD();
+  const lbl=cfg.mode==='benchmarked'&&cfg.company?cfg.company:cfg.industry;
+  const tN=parseInt(d.ttfAvg),tB=parseInt(d.ttfBench);
+  const actions=[
+    {p:"P1",a:`Launch proactive sourcing targeting displaced ${cfg.industry} talent from recent layoffs`,o:"TA Director",due:"Feb 21"},
+    {p:"P1",a:"Escalate comp review for roles below P50 — build CHRO business case with band data",o:"TA Director",due:"Feb 24"},
+    {p:"P2",a:`Review top at-risk reqs (${d.ttfAvg} avg vs ${d.ttfBench} target) — agency or strategy pivot`,o:"TA Manager",due:"Feb 25"},
+    {p:"P2",a:"Build APAC passive pipeline for scarce role families for H2 2026 plan",o:"Sourcer",due:"Mar 1"},
+    {p:"P3",a:"Audit EVP messaging — OAR gap widening, referrals outperforming all channels",o:"TA Manager",due:"Mar 7"}
+  ];
+  const sc=[
+    {m:"Monthly Hires vs. Target",v:"111% (61 of 55)",s:"green",src:"Your ATS (internal)"},
+    {m:"Avg Time to Fill",v:`${d.ttfAvg} (target: ${d.ttfBench})`,s:"red",src:"Your ATS + iCIMS"},
+    {m:"Offer Accept Rate",v:"76% (target: 85%)",s:"red",src:"Your ATS (internal)"},
+    {m:"Roles Below Market P50",v:"4 of 7",s:"red",src:"Radford/Mercer Survey"},
+    {m:"At-Risk Reqs",v:"5 active",s:"amber",src:"Your ATS (internal)"},
+    {m:"Industry Hiring Index",v:`${d.kpi.hiringIdx} — cooling`,s:"green",src:"LinkedIn Talent Insights"},
+    {m:"Displaced Talent Window",v:`${d.kpi.displaced} available`,s:"green",src:"layoffs.fyi + Challenger Report"}
+  ];
+  document.getElementById('tab-content').innerHTML=`<div class="flex-col">
+    <div class="kpi-row">
+      ${kC('Global Hires (MTD)','61','vs 55 target — 111%',{d:'dn',l:'On track'},'var(--green)','Your ATS (internal data)')}
+      ${kC('Avg Time to Fill',d.ttfAvg,`+${tN-tB}d over ${tB}d target`,{d:'up',l:'Above target'},'var(--amber)','Your ATS + iCIMS Benchmark')}
+      ${kC('Offer Accept Rate','76%','Target 85% — gap: –9pts',{d:'up',l:'Comp gap cited in exits'},'var(--red)','Your ATS (internal data)')}
+      ${kC('Market Tightness',d.kpi.tightness,d.scarceTxt.split(',').slice(0,2).join(',')+' tight',{d:'flat',l:d.kpi.tightnessTrend},`var(--${d.kpi.tightnessC})`,'LinkedIn Talent Insights + Lightcast')}
+    </div>
+    <div class="card">
+      <div class="card-title">AI Market Summary — ${lbl} · Week of Feb 17, 2026</div>
+      <div class="ai-gen-badge">Auto-generated · Updated 6h ago</div>
+      <div class="insight-grid">
+        ${d.execInsights.map(item=>`<div class="insight-card"><div class="insight-header"><span style="font-size:16px">${item.icon}</span><span style="font-size:12px;font-weight:600;color:${item.col}">${item.title}</span></div><div class="insight-body">${item.body}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Top Actions This Week</div>
+        <div class="card-sub">Priority items for TA leadership</div>
+        ${actions.map(a=>`<div class="action-row"><span class="badge ${a.p==='P1'?'badge-red':a.p==='P2'?'badge-amber':'badge-green'}">${a.p}</span><div><div class="action-text">${a.a}</div><div class="action-meta">${a.o} · Due ${a.due}</div></div></div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">Scorecard</div>
+        <div class="card-sub">Key metrics vs. targets — current week</div>
+        ${sc.map(r=>`<div class="scorecard-row" title="Source: ${r.src}"><span style="color:var(--muted)">${r.m}</span><span style="color:${r.s==='green'?'var(--green)':r.s==='red'?'var(--red)':'var(--amber)'};font-weight:600">${r.v}</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// AI ASK
+// ══════════════════════════════════════════
+async function askAI(){
+  const q=document.getElementById('ai-input').value.trim();
+  if(!q) return;
+  if(!cfg.apiKey){showAiBar('⚠️ Add your Anthropic API key in Settings to use the AI Ask feature.');return;}
+  const btn=document.getElementById('ask-btn');
+  btn.textContent='…';btn.disabled=true;
+  showAiBar('Analyzing market data…');
+  const d=getD();
+  const ctx=cfg.mode==='benchmarked'&&cfg.company?`Company: ${cfg.company}. Competitors: ${cfg.peers.join(', ')}.`:`General ${cfg.industry} market pulse.`;
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":cfg.apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",max_tokens:1000,
+      system:`You are a talent intelligence analyst. ${ctx} Industry: ${cfg.industry}. Market data: Layoffs (30d): ${d.kpi.layoffs}. Displaced: ${d.kpi.displaced}. Hiring index: ${d.kpi.hiringIdx}. Scarce roles: ${d.scarceTxt}. Comp: 4 of 7 roles below P50, avg P47. Pipeline: 118 reqs, TTF ${d.ttfAvg} vs ${d.ttfBench} target, OAR 76% vs 85%. Respond with 2-3 sentences of sharp insight followed by exactly 2 bullet recommended actions. No preamble.`,
+      messages:[{role:"user",content:q}]
+    })});
+    const data=await r.json();
+    if(data.error){showAiBar(`Error: ${data.error.message}`);}
+    else{showAiBar(data.content?.map(b=>b.text||'').join(' ')||'No response received.');}
+  }catch(e){showAiBar('Connection error. Check your API key and try again.');}
+  btn.textContent='Ask AI';btn.disabled=false;
+}
+function showAiBar(t){document.getElementById('ai-response').textContent=t;document.getElementById('ai-bar').style.display='flex';}
+function closeAiBar(){document.getElementById('ai-bar').style.display='none';document.getElementById('ai-input').value='';}
+</script>
+</body>
+</html>
